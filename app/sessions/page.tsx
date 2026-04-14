@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAllSessions } from "@/lib/queries";
+import { getAllSessions, getProjects } from "@/lib/queries";
 import { fmtDate, fmtRelative, basename } from "@/lib/utils";
 import { fmtCost, fmtTokens, costUSD } from "@/lib/pricing";
 import { Star } from "lucide-react";
@@ -18,6 +18,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
   const perm = sp.perm || "";
   const tag = sp.tag || "";
   const q = sp.q || "";
+  const project = sp.project || "";
   const now = Date.now();
   const from = days > 0 ? now - days * 86400000 : undefined;
 
@@ -26,7 +27,9 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
     perm: perm || undefined,
     tag: tag || undefined,
     q: q || undefined,
+    project: project || undefined,
   });
+  const projects = getProjects() as any[];
   const totalCost = sessions.reduce((sum, s) =>
     sum + costUSD(s.model, s.in_tok || 0, s.out_tok || 0, s.cw_tok || 0, s.cr_tok || 0), 0);
 
@@ -42,6 +45,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
     if (perm) p.set("perm", perm);
     if (tag) p.set("tag", tag);
     if (q) p.set("q", q);
+    if (project) p.set("project", project);
     for (const [k, v] of Object.entries(overrides)) {
       if (v == null || v === "") p.delete(k);
       else p.set(k, v);
@@ -68,6 +72,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
             {sessions.length} sessions{limit < 1000 && " · limit applied"} · {fmtCost(totalCost)} estimated total
             {q && <> · matching <span className="text-accent">"{q}"</span></>}
             {tag && <> · tag <span className="text-accent">{tag}</span></>}
+            {project && <> · project <span className="text-accent">{basename(projects.find((p: any) => p.id === project)?.cwd || project)}</span></>}
           </p>
         </div>
         <div className="flex gap-3 text-xs items-center flex-wrap">
@@ -81,8 +86,13 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
             {tag && <input type="hidden" name="tag" value={tag} />}
             {sort !== "started" && <input type="hidden" name="sort" value={sort} />}
             {limit !== 200 && <input type="hidden" name="limit" value={String(limit)} />}
-            <input name="q" defaultValue={q} placeholder="search slug, cwd, note…"
-                   className="bg-muted rounded px-2 py-1 text-xs w-44 outline-none border border-transparent focus:border-accent/60" />
+            <select name="project" defaultValue={project}
+                    className="bg-muted rounded px-2 py-1 text-xs max-w-[180px]">
+              <option value="">all projects</option>
+              {projects.map((p: any) => <option key={p.id} value={p.id}>{basename(p.cwd || p.id)}</option>)}
+            </select>
+            <input name="q" defaultValue={q} placeholder="slug, cwd, note…"
+                   className="bg-muted rounded px-2 py-1 text-xs w-40 outline-none border border-transparent focus:border-accent/60" />
             <button className="bg-accent text-accentfg rounded px-2 py-1 text-xs hover:opacity-90">go</button>
           </form>
           <span className="text-mutedfg">sort:</span>
@@ -109,7 +119,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
         {(["default","acceptEdits","bypassPermissions","plan"] as const).map(p =>
           <span key={p}>{chip(perm === p, p, url({ perm: perm === p ? null : p }))}</span>
         )}
-        {(hasPlan || marathon || starred || days || perm || q || tag) && (
+        {(hasPlan || marathon || starred || days || perm || q || tag || project) && (
           <Link href="/sessions" className="text-[11px] text-mutedfg hover:text-fg ml-2 underline">clear filters</Link>
         )}
       </div>

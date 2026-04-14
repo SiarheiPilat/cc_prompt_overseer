@@ -150,10 +150,12 @@ export function getAllSessions(opts: {
   perm?: string;
   tag?: string;
   q?: string;
+  project?: string;
 } = {}) {
   const D = db();
   const where: string[] = [];
   const params: any[] = [];
+  if (opts.project) { where.push("s.project_id = ?"); params.push(opts.project); }
   if (opts.hasPlan) where.push("EXISTS (SELECT 1 FROM plans WHERE plans.slug = s.slug)");
   if (opts.marathon) where.push("(s.ended_at - s.started_at) > (4 * 60 * 60 * 1000)");
   if (opts.starred) where.push("COALESCE(sm.starred, 0) = 1");
