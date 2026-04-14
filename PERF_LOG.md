@@ -6,6 +6,7 @@
 | 2026-04-14 | /prompts?limit=2000 warm | 790 | 200 | same mechanism. Payload 3.3MB→1.4MB. Export route opts in via `fullText: true` to avoid truncation. |
 | 2026-04-14 | /files default warm | 910 | 341 | Default `limit` cut from 200→60 rows; added `limit` dropdown (30/60/100/200/500) + `?limit=N` URL param. Payload 1059KB→379KB. Root cause: RSC flight data was duplicating the 200-row table payload (~868KB), not DB work.
 | 2026-04-14 | /commands default warm | 627 | 278 | Same fix as /files: default `limit` 200→60, dropdown + URL param. Payload 1017KB→381KB. Same RSC-duplication root cause.
+| 2026-04-14 | /rankings warm (borderline) | ~398 | ~334 | CTE rewrite of "expensive sessions" (254ms → 22ms) and "longest prompts" (42ms → 11ms) queries in `lib/ranking.ts`. Top-N aggregation isolated from join back to sessions/projects. Page delta ~16% — just under 20% threshold; kept because DB-query wins are unambiguously large and structurally cleaner, and will compound if any other surface uses these query shapes.
 
 ## Baseline sweep — 2026-04-14
 

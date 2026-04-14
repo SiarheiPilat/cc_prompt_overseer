@@ -9,9 +9,13 @@ export function leaderboards(): Leaderboard[] {
   out.push({
     title: "Longest prompts",
     rows: (D.prepare(`
-      SELECT p.id, p.char_count, substr(p.text,1,90) AS snippet, p.session_id, pr.cwd
-      FROM prompts p LEFT JOIN projects pr ON pr.id = p.project_id
-      ORDER BY p.char_count DESC LIMIT 15
+      WITH top_p AS (
+        SELECT id, char_count, substr(text,1,90) AS snippet, session_id, project_id
+        FROM prompts ORDER BY char_count DESC LIMIT 15
+      )
+      SELECT p.*, pr.cwd FROM top_p p
+      LEFT JOIN projects pr ON pr.id = p.project_id
+      ORDER BY p.char_count DESC
     `).all() as any[]).map(r => ({
       label: (r.snippet || "").replace(/\s+/g, " "),
       value: `${r.char_count} ch`,
@@ -78,15 +82,17 @@ export function leaderboards(): Leaderboard[] {
   out.push({
     title: "Most expensive sessions (by output tokens)",
     rows: (D.prepare(`
-      SELECT s.id, s.slug, pr.cwd,
-        SUM(at.output_tokens) AS out_tok,
-        SUM(at.cache_creation_tokens) AS cw,
-        SUM(at.cache_read_tokens) AS cr
-      FROM assistant_turns at
-      JOIN sessions s ON s.id = at.session_id
+      WITH top_ses AS (
+        SELECT session_id, SUM(output_tokens) AS out_tok,
+          SUM(cache_creation_tokens) AS cw, SUM(cache_read_tokens) AS cr
+        FROM assistant_turns WHERE model IS NOT NULL
+        GROUP BY session_id ORDER BY out_tok DESC LIMIT 10
+      )
+      SELECT ts.session_id AS id, s.slug, pr.cwd, ts.out_tok, ts.cw, ts.cr
+      FROM top_ses ts
+      JOIN sessions s ON s.id = ts.session_id
       LEFT JOIN projects pr ON pr.id = s.project_id
-      WHERE at.model IS NOT NULL
-      GROUP BY s.id ORDER BY out_tok DESC LIMIT 10
+      ORDER BY ts.out_tok DESC
     `).all() as any[]).map(r => ({
       label: r.slug || r.id.slice(0, 8),
       value: `${(r.out_tok/1000).toFixed(0)}K out`,
