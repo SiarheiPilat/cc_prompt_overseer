@@ -136,8 +136,14 @@ export function getProject(id: string) {
 
 export function getSessionsForProject(id: string) {
   return db().prepare(`
-    SELECT s.*, (SELECT COUNT(*) FROM prompts WHERE session_id=s.id) AS prompt_count,
-      (SELECT slug FROM plans WHERE plans.slug=s.slug) AS plan_slug
+    SELECT s.*,
+      (SELECT COUNT(*) FROM prompts WHERE session_id=s.id) AS prompt_count,
+      (SELECT slug FROM plans WHERE plans.slug=s.slug) AS plan_slug,
+      (SELECT SUM(input_tokens) FROM assistant_turns WHERE session_id=s.id) AS in_tok,
+      (SELECT SUM(output_tokens) FROM assistant_turns WHERE session_id=s.id) AS out_tok,
+      (SELECT SUM(cache_creation_tokens) FROM assistant_turns WHERE session_id=s.id) AS cw_tok,
+      (SELECT SUM(cache_read_tokens) FROM assistant_turns WHERE session_id=s.id) AS cr_tok,
+      (SELECT MAX(model) FROM assistant_turns WHERE session_id=s.id) AS model
     FROM sessions s WHERE s.project_id=? ORDER BY s.started_at DESC
   `).all(id);
 }
