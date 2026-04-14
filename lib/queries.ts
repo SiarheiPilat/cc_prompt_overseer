@@ -1285,6 +1285,15 @@ export function sessionCandidates() {
   `).all() as any[];
 }
 
+export function starredPlans(limit = 12) {
+  return db().prepare(`
+    SELECT p.slug, p.title, p.word_count, p.mtime, p.linked_session_id, pm.note
+    FROM plans p JOIN plan_meta pm ON pm.slug = p.slug
+    WHERE pm.starred = 1
+    ORDER BY p.mtime DESC LIMIT ?
+  `).all(limit) as any[];
+}
+
 export function starredSessions(limit = 20) {
   return db().prepare(`
     SELECT s.id, s.slug, s.started_at, s.turn_count, s.permission_mode, pr.cwd,

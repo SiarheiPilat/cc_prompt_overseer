@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getDashboardSummary, heatmapData, heatmapTopSessions, tokenSummary, streakInfo, activeSessions, recentEdits, starredSessions } from "@/lib/queries";
+import { getDashboardSummary, heatmapData, heatmapTopSessions, tokenSummary, streakInfo, activeSessions, recentEdits, starredSessions, starredPlans } from "@/lib/queries";
 import { fmtRelative, truncate, basename } from "@/lib/utils";
 import { fmtTokens, fmtCost, costUSD } from "@/lib/pricing";
 import { Heatmap } from "@/components/Heatmap";
@@ -17,6 +17,7 @@ export default function DashboardPage() {
   const active = activeSessions(60 * 60 * 1000) as any[];
   const edits = recentEdits(7 * 86400000, 12);
   const stars = starredSessions(6) as any[];
+  const planStars = starredPlans(6) as any[];
   return (
     <div className="p-6 space-y-6">
       <header className="flex items-end justify-between">
@@ -133,6 +134,28 @@ export default function DashboardPage() {
                   <span className="text-xs text-mutedfg tabular-nums">{s.prompt_count}p · {s.turn_count}t</span>
                 </Link>
                 {s.note && <div className="text-[11px] text-mutedfg italic ml-9 line-clamp-1">{s.note}</div>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {planStars.length > 0 && (
+        <section className="rounded-lg border border-border bg-card/60 p-4">
+          <h2 className="text-sm font-medium mb-3 flex items-center justify-between">
+            <span>Starred plans</span>
+            <Link href="/plans?starred=1" className="text-[11px] text-accent hover:underline font-normal">view all →</Link>
+          </h2>
+          <ul className="space-y-1">
+            {planStars.map((p: any) => (
+              <li key={p.slug}>
+                <Link className="flex items-baseline gap-3 rounded px-2 py-1.5 hover:bg-muted/40 text-sm" href={`/plans/${encodeURIComponent(p.slug)}`}>
+                  <span className="text-yellow-300 shrink-0">★</span>
+                  <span className="text-xs text-mutedfg w-20 tabular-nums">{fmtRelative(p.mtime)}</span>
+                  <span className="truncate flex-1 min-w-0">{truncate(p.title || p.slug, 80)}</span>
+                  <span className="text-xs text-mutedfg">{p.word_count}w</span>
+                </Link>
+                {p.note && <div className="text-[11px] text-mutedfg italic ml-9 line-clamp-1">{p.note}</div>}
               </li>
             ))}
           </ul>
