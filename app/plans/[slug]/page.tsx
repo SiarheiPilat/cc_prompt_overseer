@@ -4,6 +4,7 @@ import { getPlan, planFollowups, getAdjacentPlans } from "@/lib/queries";
 import { fmtDate, fmtRelative, truncate } from "@/lib/utils";
 import { PlanView } from "@/components/PlanView";
 import { parsePlanProgress } from "@/lib/plan-progress";
+import { PlanMetaPanel } from "@/components/PlanMetaPanel";
 import { CheckSquare, Square } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +32,8 @@ export default async function PlanPage({ params }: { params: Promise<{ slug: str
             </div>
           )}
         </div>
-        <div className="flex gap-2 shrink-0">
+        <div className="flex gap-2 shrink-0 items-center">
+          <PlanMetaPanel slug={p.slug} />
           {p.linked_session_id && (
             <Link className="text-sm bg-accent/20 text-accent px-3 py-1.5 rounded hover:bg-accent/30"
                   href={`/sessions/${p.linked_session_id}`}>open session →</Link>
