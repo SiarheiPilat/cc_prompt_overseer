@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPlan } from "@/lib/queries";
-import { fmtDate } from "@/lib/utils";
+import { getPlan, planFollowups } from "@/lib/queries";
+import { fmtDate, truncate } from "@/lib/utils";
 import { PlanView } from "@/components/PlanView";
 import { parsePlanProgress } from "@/lib/plan-progress";
 import { CheckSquare, Square } from "lucide-react";
@@ -13,6 +13,7 @@ export default async function PlanPage({ params }: { params: Promise<{ slug: str
   const p = getPlan(decodeURIComponent(slug)) as any;
   if (!p) return notFound();
   const progress = parsePlanProgress(p.body || "");
+  const followups = planFollowups(p.slug, p.mtime || 0, 30);
   return (
     <div className="p-6 space-y-4 max-w-4xl">
       <header className="flex items-start justify-between gap-4">
@@ -53,6 +54,29 @@ export default async function PlanPage({ params }: { params: Promise<{ slug: str
       <div className="rounded-lg border border-border bg-card/60 p-6">
         <PlanView body={p.body} />
       </div>
+
+      {followups.length > 0 && (
+        <section className="rounded-lg border border-border bg-card/60 p-4">
+          <h2 className="text-sm font-medium mb-3">
+            Follow-up prompts in the linked session ({followups.length})
+            <span className="ml-2 text-[11px] text-mutedfg font-normal">— what you said after this plan was written</span>
+          </h2>
+          <ul className="space-y-1">
+            {followups.map((f: any) => (
+              <Link key={f.id} href={`/sessions/${f.session_id}#p${f.id}`}
+                    className="block rounded p-2 hover:bg-muted/40 border border-transparent hover:border-border">
+                <div className="text-[11px] text-mutedfg flex gap-2">
+                  <span className="tabular-nums">{fmtDate(f.ts).slice(11, 16)}</span>
+                  {f.is_slash ? <span className="text-accent">/{f.slash_name}</span> : <span>{f.category || "—"}</span>}
+                  <span className="ml-auto tabular-nums">{f.char_count} ch</span>
+                </div>
+                <div className="text-[12px] font-mono mt-0.5 line-clamp-2">{truncate((f.snippet || "").replace(/\s+/g, " "), 280)}</div>
+              </Link>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <div className="text-xs text-mutedfg">file: <code>{p.path}</code></div>
     </div>
   );

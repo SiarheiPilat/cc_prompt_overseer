@@ -198,6 +198,20 @@ export function getPlan(slug: string) {
   return db().prepare(`SELECT * FROM plans WHERE slug=?`).get(slug);
 }
 
+export function planFollowups(slug: string, sinceMs: number, limit = 30) {
+  // Prompts in the linked session that came after the plan was written
+  const D = db();
+  const ses = D.prepare(`SELECT id FROM sessions WHERE slug=? ORDER BY started_at DESC LIMIT 1`).get(slug) as any;
+  if (!ses) return [];
+  return D.prepare(`
+    SELECT p.id, p.ts, p.session_id, p.is_slash, p.slash_name, p.category,
+           p.char_count, substr(p.text, 1, 280) AS snippet
+    FROM prompts p
+    WHERE p.session_id=? AND p.ts > ?
+    ORDER BY p.ts ASC LIMIT ?
+  `).all(ses.id, sinceMs, limit) as any[];
+}
+
 export function recentEdits(windowMs = 7 * 86400000, limit = 12) {
   const since = Date.now() - windowMs;
   return db().prepare(`
