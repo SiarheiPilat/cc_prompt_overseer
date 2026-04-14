@@ -330,6 +330,18 @@ export function slashHistogram() {
   `).all() as Array<{ slash_name: string; n: number }>;
 }
 
+export function searchPlans(q: string, limit = 30) {
+  if (!q.trim()) return [];
+  const term = `%${q.trim()}%`;
+  return db().prepare(`
+    SELECT slug, title, mtime, word_count,
+      substr(body, MAX(1, instr(LOWER(body), LOWER(?)) - 60), 280) AS snippet
+    FROM plans
+    WHERE body LIKE ? OR title LIKE ? OR slug LIKE ?
+    ORDER BY mtime DESC LIMIT ?
+  `).all(q.trim(), term, term, term, limit) as any[];
+}
+
 export function searchFTS(q: string, limit = 100) {
   if (!q.trim()) return [];
   const query = q.split(/\s+/).filter(Boolean).slice(0, 8).map(t => {
