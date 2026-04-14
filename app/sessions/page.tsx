@@ -15,12 +15,14 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
   const starred = sp.starred === "1";
   const days = Number(sp.days) || 0;
   const perm = sp.perm || "";
+  const tag = sp.tag || "";
   const now = Date.now();
   const from = days > 0 ? now - days * 86400000 : undefined;
 
   const sessions = getAllSessions({
     sort, limit, hasPlan, marathon, starred, from,
     perm: perm || undefined,
+    tag: tag || undefined,
   });
   const totalCost = sessions.reduce((sum, s) =>
     sum + costUSD(s.model, s.in_tok || 0, s.out_tok || 0, s.cw_tok || 0, s.cr_tok || 0), 0);
@@ -35,6 +37,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
     if (starred) p.set("starred", "1");
     if (days) p.set("days", String(days));
     if (perm) p.set("perm", perm);
+    if (tag) p.set("tag", tag);
     for (const [k, v] of Object.entries(overrides)) {
       if (v == null || v === "") p.delete(k);
       else p.set(k, v);
@@ -59,6 +62,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
           <h1 className="text-2xl font-semibold">Sessions</h1>
           <p className="text-sm text-mutedfg">
             {sessions.length} sessions{limit < 1000 && " · limit applied"} · {fmtCost(totalCost)} estimated total
+            {tag && <> · tag <span className="text-accent">{tag}</span></>}
           </p>
         </div>
         <div className="flex gap-3 text-xs items-center">

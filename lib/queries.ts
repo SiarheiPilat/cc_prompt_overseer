@@ -148,6 +148,7 @@ export function getAllSessions(opts: {
   from?: number;
   to?: number;
   perm?: string;
+  tag?: string;
 } = {}) {
   const D = db();
   const where: string[] = [];
@@ -158,6 +159,7 @@ export function getAllSessions(opts: {
   if (opts.from) { where.push("s.started_at >= ?"); params.push(opts.from); }
   if (opts.to) { where.push("s.started_at <= ?"); params.push(opts.to); }
   if (opts.perm) { where.push("s.permission_mode = ?"); params.push(opts.perm); }
+  if (opts.tag) { where.push("sm.tags LIKE ?"); params.push(`%"${opts.tag.replace(/"/g, "")}"%`); }
   const whereSql = where.length ? "WHERE " + where.join(" AND ") : "";
   const inner = `
     SELECT s.id, s.slug, s.started_at, s.ended_at, s.turn_count,
@@ -822,20 +824,47 @@ export function slashSuccessMetrics() {
 
 export function tagCounts() {
   const D = db();
-  const rows = D.prepare(`SELECT tags FROM user_meta WHERE tags IS NOT NULL`).all() as Array<{ tags: string }>;
-  const counts = new Map<string, number>();
-  for (const r of rows) {
+  const counts = new Map<string, { prompts: number; sessions: number }>();
+  function bump(tag: string, kind: "prompts" | "sessions") {
+    const cur = counts.get(tag) || { prompts: 0, sessions: 0 };
+    cur[kind]++;
+    counts.set(tag, cur);
+  }
+  for (const r of D.prepare(`SELECT tags FROM user_meta WHERE tags IS NOT NULL`).all() as Array<{ tags: string }>) {
     let arr: any = null;
     try { arr = JSON.parse(r.tags); } catch {}
     if (!Array.isArray(arr)) continue;
     for (const t of arr) {
       if (typeof t !== "string") continue;
       const tag = t.trim().toLowerCase();
-      if (!tag) continue;
-      counts.set(tag, (counts.get(tag) || 0) + 1);
+      if (tag) bump(tag, "prompts");
     }
   }
-  return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).map(([tag, n]) => ({ tag, n }));
+  for (const r of D.prepare(`SELECT tags FROM session_meta WHERE tags IS NOT NULL`).all() as Array<{ tags: string }>) {
+    let arr: any = null;
+    try { arr = JSON.parse(r.tags); } catch {}
+    if (!Array.isArray(arr)) continue;
+    for (const t of arr) {
+      if (typeof t !== "string") continue;
+      const tag = t.trim().toLowerCase();
+      if (tag) bump(tag, "sessions");
+    }
+  }
+  return Array.from(counts.entries())
+    .map(([tag, c]) => ({ tag, n: c.prompts + c.sessions, prompts: c.prompts, sessions: c.sessions }))
+    .sort((a, b) => b.n - a.n);
+}
+
+export function sessionsByTag(tag: string, limit = 50) {
+  const needle = `%"${tag.toLowerCase().replace(/"/g, "")}"%`;
+  return db().prepare(`
+    SELECT s.id, s.slug, s.started_at, s.turn_count, pr.cwd, sm.note
+    FROM session_meta sm
+    JOIN sessions s ON s.id = sm.session_id
+    LEFT JOIN projects pr ON pr.id = s.project_id
+    WHERE sm.tags LIKE ?
+    ORDER BY s.started_at DESC LIMIT ?
+  `).all(needle, limit) as any[];
 }
 
 export function stopReasonStats() {
