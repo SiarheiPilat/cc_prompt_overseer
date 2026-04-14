@@ -9,17 +9,29 @@ import { ResumeButton } from "@/components/ResumeButton";
 
 export const dynamic = "force-dynamic";
 
-export default async function SessionPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function SessionPage({
+  params, searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const { id } = await params;
+  const sp = await searchParams;
+  const showAll = sp.all === "1";
   const s = getSession(id) as any;
   if (!s) return notFound();
-  const { prompts, turns } = getSessionMessages(id);
+  const { prompts, turns: allTurns } = getSessionMessages(id);
+  // Cap assistant turns in the initial render for big sessions
+  const TURN_CAP = 200;
+  const turnsTruncated = !showAll && allTurns.length > TURN_CAP;
+  const turns = turnsTruncated ? (allTurns as any[]).slice(-TURN_CAP) : allTurns;
   const plan = s.slug ? (getPlan(s.slug) as any) : null;
-  const tIn = turns.reduce((a: number, t: any) => a + (t.input_tokens || 0), 0);
-  const tOut = turns.reduce((a: number, t: any) => a + (t.output_tokens || 0), 0);
-  const tCw = turns.reduce((a: number, t: any) => a + (t.cache_creation_tokens || 0), 0);
-  const tCr = turns.reduce((a: number, t: any) => a + (t.cache_read_tokens || 0), 0);
-  const model = (turns.find((t: any) => t.model) as any)?.model || null;
+  // Aggregate tokens across ALL turns (not just the rendered window)
+  const tIn = (allTurns as any[]).reduce((a: number, t: any) => a + (t.input_tokens || 0), 0);
+  const tOut = (allTurns as any[]).reduce((a: number, t: any) => a + (t.output_tokens || 0), 0);
+  const tCw = (allTurns as any[]).reduce((a: number, t: any) => a + (t.cache_creation_tokens || 0), 0);
+  const tCr = (allTurns as any[]).reduce((a: number, t: any) => a + (t.cache_read_tokens || 0), 0);
+  const model = ((allTurns as any[]).find((t: any) => t.model) as any)?.model || null;
   const cost = costUSD(model, tIn, tOut, tCw, tCr);
   const promptChars = (prompts as any[]).reduce((s: number, p: any) => s + (p.char_count || 0), 0);
   const verbosity = promptChars > 0 ? tOut / promptChars : 0;
@@ -34,7 +46,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
           <h1 className="text-xl font-semibold">Session {s.id.slice(0, 8)}…</h1>
           <div className="text-xs text-mutedfg space-x-3 mt-1">
             <span>{fmtDate(s.started_at)} → {fmtDate(s.ended_at)}</span>
-            <span>{prompts.length} prompts · {turns.length} assistant turns</span>
+            <span>{prompts.length} prompts · {allTurns.length} assistant turns</span>
             {s.version && <span>v{s.version}</span>}
             {s.permission_mode && <span>{s.permission_mode}</span>}
             {s.git_branch && <span>git: {s.git_branch}</span>}
@@ -121,6 +133,15 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
         </section>
       )}
 
+      {turnsTruncated && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs flex items-center justify-between">
+          <span className="text-amber-200">
+            Showing the most recent {TURN_CAP} of {allTurns.length} assistant turns.
+            Older turns are hidden to keep the page fast.
+          </span>
+          <Link href={`?all=1`} className="text-amber-300 hover:underline">show all →</Link>
+        </div>
+      )}
       <SessionReplay prompts={prompts as any[]} turns={turns as any[]} />
     </div>
   );
