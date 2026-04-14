@@ -3,6 +3,7 @@ import { fileDetail, promptsMentioningFile } from "@/lib/queries";
 import { fmtDate, fmtRelative, basename, truncate } from "@/lib/utils";
 import { fmtDuration } from "@/lib/bursts";
 import { Sparkline } from "@/components/Sparkline";
+import { FileActions } from "@/components/FileActions";
 
 export const dynamic = "force-dynamic";
 
@@ -44,10 +45,13 @@ export default async function FileDetailPage({ searchParams }: { searchParams: P
 
   return (
     <div className="p-6 space-y-4 max-w-5xl">
-      <header>
-        <div className="text-xs text-mutedfg">file</div>
-        <h1 className="text-xl font-semibold break-all">{basename(path)}</h1>
-        <p className="text-[11px] text-mutedfg break-all mt-0.5">{path}</p>
+      <header className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="min-w-0">
+          <div className="text-xs text-mutedfg">file</div>
+          <h1 className="text-xl font-semibold break-all">{basename(path)}</h1>
+          <p className="text-[11px] text-mutedfg break-all mt-0.5">{path}</p>
+        </div>
+        <FileActions path={path} />
       </header>
 
       <section className="grid grid-cols-2 md:grid-cols-6 gap-3">
