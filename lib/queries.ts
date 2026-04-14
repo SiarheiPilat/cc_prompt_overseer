@@ -149,6 +149,7 @@ export function getAllSessions(opts: {
   to?: number;
   perm?: string;
   tag?: string;
+  q?: string;
 } = {}) {
   const D = db();
   const where: string[] = [];
@@ -160,6 +161,11 @@ export function getAllSessions(opts: {
   if (opts.to) { where.push("s.started_at <= ?"); params.push(opts.to); }
   if (opts.perm) { where.push("s.permission_mode = ?"); params.push(opts.perm); }
   if (opts.tag) { where.push("sm.tags LIKE ?"); params.push(`%"${opts.tag.replace(/"/g, "")}"%`); }
+  if (opts.q) {
+    where.push("(s.slug LIKE ? OR pr.cwd LIKE ? OR sm.note LIKE ?)");
+    const pat = `%${opts.q}%`;
+    params.push(pat, pat, pat);
+  }
   const whereSql = where.length ? "WHERE " + where.join(" AND ") : "";
   const inner = `
     SELECT s.id, s.slug, s.started_at, s.ended_at, s.turn_count,

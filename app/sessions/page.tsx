@@ -16,6 +16,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
   const days = Number(sp.days) || 0;
   const perm = sp.perm || "";
   const tag = sp.tag || "";
+  const q = sp.q || "";
   const now = Date.now();
   const from = days > 0 ? now - days * 86400000 : undefined;
 
@@ -23,6 +24,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
     sort, limit, hasPlan, marathon, starred, from,
     perm: perm || undefined,
     tag: tag || undefined,
+    q: q || undefined,
   });
   const totalCost = sessions.reduce((sum, s) =>
     sum + costUSD(s.model, s.in_tok || 0, s.out_tok || 0, s.cw_tok || 0, s.cr_tok || 0), 0);
@@ -38,6 +40,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
     if (days) p.set("days", String(days));
     if (perm) p.set("perm", perm);
     if (tag) p.set("tag", tag);
+    if (q) p.set("q", q);
     for (const [k, v] of Object.entries(overrides)) {
       if (v == null || v === "") p.delete(k);
       else p.set(k, v);
@@ -62,10 +65,25 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
           <h1 className="text-2xl font-semibold">Sessions</h1>
           <p className="text-sm text-mutedfg">
             {sessions.length} sessions{limit < 1000 && " · limit applied"} · {fmtCost(totalCost)} estimated total
+            {q && <> · matching <span className="text-accent">"{q}"</span></>}
             {tag && <> · tag <span className="text-accent">{tag}</span></>}
           </p>
         </div>
-        <div className="flex gap-3 text-xs items-center">
+        <div className="flex gap-3 text-xs items-center flex-wrap">
+          <form action="/sessions" className="flex gap-1 items-center">
+            {/* preserve other filters when submitting search */}
+            {hasPlan && <input type="hidden" name="hasPlan" value="1" />}
+            {marathon && <input type="hidden" name="marathon" value="1" />}
+            {starred && <input type="hidden" name="starred" value="1" />}
+            {days > 0 && <input type="hidden" name="days" value={String(days)} />}
+            {perm && <input type="hidden" name="perm" value={perm} />}
+            {tag && <input type="hidden" name="tag" value={tag} />}
+            {sort !== "started" && <input type="hidden" name="sort" value={sort} />}
+            {limit !== 200 && <input type="hidden" name="limit" value={String(limit)} />}
+            <input name="q" defaultValue={q} placeholder="search slug, cwd, note…"
+                   className="bg-muted rounded px-2 py-1 text-xs w-44 outline-none border border-transparent focus:border-accent/60" />
+            <button className="bg-accent text-accentfg rounded px-2 py-1 text-xs hover:opacity-90">go</button>
+          </form>
           <span className="text-mutedfg">sort:</span>
           {sortLink("started", "newest")}
           {sortLink("prompts", "most prompts")}
@@ -90,7 +108,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
         {(["default","acceptEdits","bypassPermissions","plan"] as const).map(p =>
           <span key={p}>{chip(perm === p, p, url({ perm: perm === p ? null : p }))}</span>
         )}
-        {(hasPlan || marathon || starred || days || perm) && (
+        {(hasPlan || marathon || starred || days || perm || q || tag) && (
           <Link href="/sessions" className="text-[11px] text-mutedfg hover:text-fg ml-2 underline">clear filters</Link>
         )}
       </div>
