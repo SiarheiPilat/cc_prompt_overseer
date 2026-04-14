@@ -146,6 +146,25 @@ export function getSession(id: string) {
   return db().prepare(`SELECT s.*, pr.cwd FROM sessions s LEFT JOIN projects pr ON pr.id=s.project_id WHERE s.id=?`).get(id);
 }
 
+export function getAdjacentSessions(id: string): { prev: any | null; next: any | null } {
+  const D = db();
+  const cur = D.prepare(`SELECT id, project_id, started_at FROM sessions WHERE id=?`).get(id) as any;
+  if (!cur || !cur.project_id || !cur.started_at) return { prev: null, next: null };
+  const prev = D.prepare(`
+    SELECT id, slug, started_at, turn_count
+    FROM sessions
+    WHERE project_id=? AND started_at IS NOT NULL AND started_at < ?
+    ORDER BY started_at DESC LIMIT 1
+  `).get(cur.project_id, cur.started_at) as any;
+  const next = D.prepare(`
+    SELECT id, slug, started_at, turn_count
+    FROM sessions
+    WHERE project_id=? AND started_at IS NOT NULL AND started_at > ?
+    ORDER BY started_at ASC LIMIT 1
+  `).get(cur.project_id, cur.started_at) as any;
+  return { prev: prev || null, next: next || null };
+}
+
 export function getSessionMessages(id: string) {
   const prompts = db().prepare(`
     SELECT p.*, COALESCE(um.starred,0) AS starred, COALESCE(um.rating,0) AS rating
