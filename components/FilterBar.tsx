@@ -8,7 +8,7 @@ export function FilterBar({
   projects, initial,
 }: {
   projects: any[];
-  initial: { q: string; project: string; slash: boolean; starred: boolean; hasPlan: boolean; showHidden?: boolean; onlyHidden?: boolean; minLen?: number; orderBy: string; dir: string; limit: number; permissionMode?: string };
+  initial: { q: string; project: string; slash: boolean; starred: boolean; hasPlan: boolean; showHidden?: boolean; onlyHidden?: boolean; minLen?: number; orderBy: string; dir: string; limit: number; permissionMode?: string; model?: string };
 }) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -19,6 +19,7 @@ export function FilterBar({
   const [starred, setStarred] = useState(initial.starred);
   const [hasPlan, setHasPlan] = useState(initial.hasPlan);
   const [permissionMode, setPermissionMode] = useState(initial.permissionMode || "");
+  const [model, setModel] = useState(initial.model || "");
   const [showHidden, setShowHidden] = useState(!!initial.showHidden);
   const [onlyHidden, setOnlyHidden] = useState(!!initial.onlyHidden);
   const [minLen, setMinLen] = useState<string>(initial.minLen ? String(initial.minLen) : "");
@@ -60,6 +61,7 @@ export function FilterBar({
     if (starred) p.set("starred", "1");
     if (hasPlan) p.set("hasPlan", "1");
     if (permissionMode) p.set("perm", permissionMode);
+    if (model) p.set("model", model);
     if (showHidden) p.set("showHidden", "1");
     if (onlyHidden) p.set("onlyHidden", "1");
     if (minLen) p.set("minLen", minLen);
@@ -77,7 +79,7 @@ export function FilterBar({
   function persist() {
     try {
       localStorage.setItem(LS_KEY, JSON.stringify({
-        q, project, slash, starred, hasPlan, permissionMode, minLen, orderBy, dir, limit,
+        q, project, slash, starred, hasPlan, permissionMode, model, minLen, orderBy, dir, limit,
       }));
     } catch {}
   }
@@ -90,7 +92,7 @@ export function FilterBar({
   function clearAll() {
     try { localStorage.removeItem(LS_KEY); } catch {}
     setQ(""); setProject(""); setSlash(false); setStarred(false); setHasPlan(false);
-    setPermissionMode("");
+    setPermissionMode(""); setModel("");
     setMinLen(""); setOrderBy("ts"); setDir("desc"); setLimit("500");
     start(() => router.push("/prompts"));
   }
@@ -112,7 +114,7 @@ export function FilterBar({
   const toParam = sp.get("to");
   const dateRangeActive = !!fromParam || !!toParam;
 
-  const hasActive = q || project || slash || starred || hasPlan || permissionMode || minLen || orderBy !== "ts" || dir !== "desc" || (limit && limit !== "500");
+  const hasActive = q || project || slash || starred || hasPlan || permissionMode || model || minLen || orderBy !== "ts" || dir !== "desc" || (limit && limit !== "500");
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card/60 p-3">
@@ -138,6 +140,12 @@ export function FilterBar({
         <option value="acceptEdits">acceptEdits</option>
         <option value="bypassPermissions">bypassPermissions</option>
         <option value="plan">plan</option>
+      </select>
+      <select className="bg-muted rounded px-2 py-1.5 text-sm" value={model} onChange={e => setModel(e.target.value)} title="filter by model family">
+        <option value="">any model</option>
+        <option value="opus">opus</option>
+        <option value="sonnet">sonnet</option>
+        <option value="haiku">haiku</option>
       </select>
       <label className="text-xs flex items-center gap-1.5 px-2 py-1 rounded bg-muted cursor-pointer" title="include prompts you've hidden">
         <input type="checkbox" checked={showHidden} onChange={e => { setShowHidden(e.target.checked); if (e.target.checked) setOnlyHidden(false); }} />show hidden
