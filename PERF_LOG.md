@@ -8,6 +8,44 @@
 | 2026-04-14 | /commands default warm | 627 | 278 | Same fix as /files: default `limit` 200→60, dropdown + URL param. Payload 1017KB→381KB. Same RSC-duplication root cause.
 | 2026-04-14 | /rankings warm (borderline) | ~398 | ~334 | CTE rewrite of "expensive sessions" (254ms → 22ms) and "longest prompts" (42ms → 11ms) queries in `lib/ranking.ts`. Top-N aggregation isolated from join back to sessions/projects. Page delta ~16% — just under 20% threshold; kept because DB-query wins are unambiguously large and structurally cleaner, and will compound if any other surface uses these query shapes.
 
+## Production build baseline — 2026-04-14 (iter 6, hard-stop)
+
+`npm run build` + `next start -p 3838`. Every route is already fast in prod mode. Warm median (3 samples):
+
+| route | warm (s) |
+|---|---|
+| / | 0.004 |
+| /tags | 0.007 |
+| /slashes | 0.013 |
+| /repeats | 0.018 |
+| /skills | 0.017 |
+| /analytics | 0.023 |
+| /calendar | 0.023 |
+| /week | 0.023 |
+| /timeline | 0.026 |
+| /prompts | 0.029 |
+| /tools | 0.033 |
+| /burndown | 0.034 |
+| /commands | 0.035 |
+| /rankings | 0.038 |
+| /agents | 0.038 |
+| /today | 0.039 |
+| /files | 0.052 |
+| /anomalies | 0.052 |
+| /wordcloud | 0.113 |
+| /highlights | 0.125 |
+| /tokens | 0.152 |
+
+Every route is under the 200ms hard-stop threshold from PERF_LOOP_PROMPT.md. **Loop stopped.**
+
+What was real vs fake:
+- Iters 3–4 (pagination cuts on /files and /commands) produced gains visible in **both** dev and prod (less HTML + less RSC flight data). Those were real.
+- Iter 2 (lazy text) hides a large payload in both modes.
+- Iter 5 (CTE rewrite) produces a large speedup on the standalone query in both modes; the page-level impact is more prominent in prod where framework overhead doesn't dominate.
+- Iter 1 investigations (both reverted) were correctly rejected under the protocol.
+
+If future activity pushes any prod-mode route above 200ms warm (e.g. indexing another 100k+ prompts), restart the loop.
+
 ## Baseline sweep — 2026-04-14
 
 Dev-mode (`npm run dev`, Next 15.5, local). Warm median (3 samples):
