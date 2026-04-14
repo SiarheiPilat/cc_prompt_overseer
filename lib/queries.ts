@@ -144,6 +144,7 @@ export function getAllSessions(opts: {
   limit?: number;
   hasPlan?: boolean;
   marathon?: boolean;
+  starred?: boolean;
   from?: number;
   to?: number;
   perm?: string;
@@ -153,6 +154,7 @@ export function getAllSessions(opts: {
   const params: any[] = [];
   if (opts.hasPlan) where.push("EXISTS (SELECT 1 FROM plans WHERE plans.slug = s.slug)");
   if (opts.marathon) where.push("(s.ended_at - s.started_at) > (4 * 60 * 60 * 1000)");
+  if (opts.starred) where.push("COALESCE(sm.starred, 0) = 1");
   if (opts.from) { where.push("s.started_at >= ?"); params.push(opts.from); }
   if (opts.to) { where.push("s.started_at <= ?"); params.push(opts.to); }
   if (opts.perm) { where.push("s.permission_mode = ?"); params.push(opts.perm); }
@@ -166,8 +168,12 @@ export function getAllSessions(opts: {
       (SELECT SUM(output_tokens) FROM assistant_turns WHERE session_id=s.id) AS out_tok,
       (SELECT SUM(cache_creation_tokens) FROM assistant_turns WHERE session_id=s.id) AS cw_tok,
       (SELECT SUM(cache_read_tokens) FROM assistant_turns WHERE session_id=s.id) AS cr_tok,
-      (SELECT MAX(model) FROM assistant_turns WHERE session_id=s.id) AS model
-    FROM sessions s LEFT JOIN projects pr ON pr.id = s.project_id
+      (SELECT MAX(model) FROM assistant_turns WHERE session_id=s.id) AS model,
+      COALESCE(sm.starred, 0) AS starred,
+      sm.note AS note
+    FROM sessions s
+    LEFT JOIN projects pr ON pr.id = s.project_id
+    LEFT JOIN session_meta sm ON sm.session_id = s.id
     ${whereSql}
   `;
   const sortCol =

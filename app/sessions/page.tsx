@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getAllSessions } from "@/lib/queries";
 import { fmtDate, fmtRelative, basename } from "@/lib/utils";
 import { fmtCost, fmtTokens, costUSD } from "@/lib/pricing";
+import { Star } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -11,13 +12,14 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
   const limit = Math.min(1000, Math.max(20, Number(sp.limit) || 200));
   const hasPlan = sp.hasPlan === "1";
   const marathon = sp.marathon === "1";
+  const starred = sp.starred === "1";
   const days = Number(sp.days) || 0;
   const perm = sp.perm || "";
   const now = Date.now();
   const from = days > 0 ? now - days * 86400000 : undefined;
 
   const sessions = getAllSessions({
-    sort, limit, hasPlan, marathon, from,
+    sort, limit, hasPlan, marathon, starred, from,
     perm: perm || undefined,
   });
   const totalCost = sessions.reduce((sum, s) =>
@@ -30,6 +32,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
     if (limit !== 200) p.set("limit", String(limit));
     if (hasPlan) p.set("hasPlan", "1");
     if (marathon) p.set("marathon", "1");
+    if (starred) p.set("starred", "1");
     if (days) p.set("days", String(days));
     if (perm) p.set("perm", perm);
     for (const [k, v] of Object.entries(overrides)) {
@@ -75,6 +78,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
         <span className="text-mutedfg">filter:</span>
         {chip(hasPlan,  "with plan",  url({ hasPlan: hasPlan ? null : "1" }))}
         {chip(marathon, "marathon (>4h)", url({ marathon: marathon ? null : "1" }))}
+        {chip(starred,  "★ starred",  url({ starred: starred ? null : "1" }))}
         {chip(days === 1,  "today",  url({ days: days === 1  ? null : "1" }))}
         {chip(days === 7,  "7 days", url({ days: days === 7  ? null : "7" }))}
         {chip(days === 30, "30 days", url({ days: days === 30 ? null : "30" }))}
@@ -82,7 +86,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
         {(["default","acceptEdits","bypassPermissions","plan"] as const).map(p =>
           <span key={p}>{chip(perm === p, p, url({ perm: perm === p ? null : p }))}</span>
         )}
-        {(hasPlan || marathon || days || perm) && (
+        {(hasPlan || marathon || starred || days || perm) && (
           <Link href="/sessions" className="text-[11px] text-mutedfg hover:text-fg ml-2 underline">clear filters</Link>
         )}
       </div>
@@ -106,9 +110,12 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
               <tr key={s.id} className="border-b border-border/60 hover:bg-muted/40">
                 <td className="px-3 py-1.5 text-xs text-mutedfg tabular-nums whitespace-nowrap">{fmtDate(s.started_at).slice(0, 16)}</td>
                 <td className="px-3 py-1.5 max-w-0">
-                  <Link className="text-accent hover:underline truncate block" href={`/sessions/${s.id}`}>
-                    {s.slug || s.id.slice(0, 8)}
-                    {s.plan_slug && <span className="ml-2 text-[10px] bg-accent/20 text-accent rounded px-1.5 py-0.5">plan</span>}
+                  <Link className="text-accent hover:underline truncate flex items-center gap-1.5"
+                        href={`/sessions/${s.id}`} title={s.note || undefined}>
+                    {s.starred ? <Star className="h-3 w-3 text-yellow-300 shrink-0" fill="currentColor" /> : null}
+                    <span className="truncate">{s.slug || s.id.slice(0, 8)}</span>
+                    {s.plan_slug && <span className="text-[10px] bg-accent/20 text-accent rounded px-1.5 py-0.5 shrink-0">plan</span>}
+                    {s.note && <span className="text-[10px] text-mutedfg italic truncate">· {s.note.slice(0, 60)}</span>}
                   </Link>
                 </td>
                 <td className="px-3 py-1.5 text-xs text-mutedfg max-w-0">
