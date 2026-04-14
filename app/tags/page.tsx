@@ -48,6 +48,9 @@ export default function TagsPage() {
                 <Link href={`/sessions?tag=${encodeURIComponent(t.tag)}`}
                   className="text-mutedfg text-xs tabular-nums hover:text-accent">{t.sessions}s</Link>
               )}
+              {t.plans > 0 && (
+                <span className="text-mutedfg text-xs tabular-nums" title={`${t.plans} plans tagged`}>{t.plans}pl</span>
+              )}
             </span>
           );
         })}

@@ -252,16 +252,25 @@ export function getSessionMessages(id: string) {
   return { prompts, turns };
 }
 
-export function getPlans(q?: string) {
+export function getPlans(q?: string, opts: { starred?: boolean } = {}) {
+  const where: string[] = [];
+  const params: any[] = [];
   if (q && q.trim()) {
+    where.push("(p.body LIKE ? OR p.title LIKE ? OR p.slug LIKE ?)");
     const term = `%${q.trim()}%`;
-    return db().prepare(`
-      SELECT slug, title, word_count, mtime, linked_session_id, body FROM plans
-      WHERE body LIKE ? OR title LIKE ? OR slug LIKE ?
-      ORDER BY mtime DESC
-    `).all(term, term, term);
+    params.push(term, term, term);
   }
-  return db().prepare(`SELECT slug, title, word_count, mtime, linked_session_id, body FROM plans ORDER BY mtime DESC`).all();
+  if (opts.starred) where.push("COALESCE(pm.starred, 0) = 1");
+  const whereSql = where.length ? "WHERE " + where.join(" AND ") : "";
+  return db().prepare(`
+    SELECT p.slug, p.title, p.word_count, p.mtime, p.linked_session_id, p.body,
+      COALESCE(pm.starred, 0) AS starred,
+      pm.note, pm.tags
+    FROM plans p
+    LEFT JOIN plan_meta pm ON pm.slug = p.slug
+    ${whereSql}
+    ORDER BY p.mtime DESC
+  `).all(...params);
 }
 
 export function getPlan(slug: string) {
@@ -858,34 +867,29 @@ export function slashSuccessMetrics() {
 
 export function tagCounts() {
   const D = db();
-  const counts = new Map<string, { prompts: number; sessions: number }>();
-  function bump(tag: string, kind: "prompts" | "sessions") {
-    const cur = counts.get(tag) || { prompts: 0, sessions: 0 };
+  const counts = new Map<string, { prompts: number; sessions: number; plans: number }>();
+  function bump(tag: string, kind: "prompts" | "sessions" | "plans") {
+    const cur = counts.get(tag) || { prompts: 0, sessions: 0, plans: 0 };
     cur[kind]++;
     counts.set(tag, cur);
   }
-  for (const r of D.prepare(`SELECT tags FROM user_meta WHERE tags IS NOT NULL`).all() as Array<{ tags: string }>) {
-    let arr: any = null;
-    try { arr = JSON.parse(r.tags); } catch {}
-    if (!Array.isArray(arr)) continue;
-    for (const t of arr) {
-      if (typeof t !== "string") continue;
-      const tag = t.trim().toLowerCase();
-      if (tag) bump(tag, "prompts");
+  function ingest(rows: Array<{ tags: string }>, kind: "prompts" | "sessions" | "plans") {
+    for (const r of rows) {
+      let arr: any = null;
+      try { arr = JSON.parse(r.tags); } catch {}
+      if (!Array.isArray(arr)) continue;
+      for (const t of arr) {
+        if (typeof t !== "string") continue;
+        const tag = t.trim().toLowerCase();
+        if (tag) bump(tag, kind);
+      }
     }
   }
-  for (const r of D.prepare(`SELECT tags FROM session_meta WHERE tags IS NOT NULL`).all() as Array<{ tags: string }>) {
-    let arr: any = null;
-    try { arr = JSON.parse(r.tags); } catch {}
-    if (!Array.isArray(arr)) continue;
-    for (const t of arr) {
-      if (typeof t !== "string") continue;
-      const tag = t.trim().toLowerCase();
-      if (tag) bump(tag, "sessions");
-    }
-  }
+  ingest(D.prepare(`SELECT tags FROM user_meta WHERE tags IS NOT NULL`).all() as any, "prompts");
+  ingest(D.prepare(`SELECT tags FROM session_meta WHERE tags IS NOT NULL`).all() as any, "sessions");
+  ingest(D.prepare(`SELECT tags FROM plan_meta WHERE tags IS NOT NULL`).all() as any, "plans");
   return Array.from(counts.entries())
-    .map(([tag, c]) => ({ tag, n: c.prompts + c.sessions, prompts: c.prompts, sessions: c.sessions }))
+    .map(([tag, c]) => ({ tag, n: c.prompts + c.sessions + c.plans, prompts: c.prompts, sessions: c.sessions, plans: c.plans }))
     .sort((a, b) => b.n - a.n);
 }
 

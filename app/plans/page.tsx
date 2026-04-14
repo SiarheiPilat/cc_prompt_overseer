@@ -17,7 +17,8 @@ function snippetAround(body: string, q: string, len = 200): string | null {
 export default async function PlansPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
   const q = (sp.q || "").trim();
-  const plans = (getPlans(q) as any[]).map(p => ({ ...p, progress: parsePlanProgress(p.body || "") }));
+  const starred = sp.starred === "1";
+  const plans = (getPlans(q, { starred }) as any[]).map(p => ({ ...p, progress: parsePlanProgress(p.body || "") }));
   const totalCheckboxes = plans.reduce((s, p) => s + p.progress.total, 0);
   const totalDone = plans.reduce((s, p) => s + p.progress.done, 0);
   return (
@@ -27,14 +28,18 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
           <h1 className="text-2xl font-semibold">Plans</h1>
           <p className="text-sm text-mutedfg">
             {plans.length} plan files {q && <>matching <span className="text-accent">"{q}"</span></>}
+            {starred && <> · ★ starred only</>}
             {totalCheckboxes > 0 && <> · {totalDone}/{totalCheckboxes} checkbox items done</>}
           </p>
         </div>
         <form action="/plans" className="flex gap-2 items-center text-sm">
+          {starred && <input type="hidden" name="starred" value="1" />}
           <input type="text" name="q" defaultValue={q} placeholder="search title, body, slug…"
-                 className="bg-muted rounded px-2 py-1.5 text-sm w-72 outline-none border border-transparent focus:border-accent/60" />
+                 className="bg-muted rounded px-2 py-1.5 text-sm w-64 outline-none border border-transparent focus:border-accent/60" />
           <button className="bg-accent text-accentfg rounded px-3 py-1.5 text-sm hover:opacity-90">search</button>
-          {q && <Link href="/plans" className="text-xs text-mutedfg hover:text-fg">clear</Link>}
+          <Link href={starred ? `/plans${q ? `?q=${encodeURIComponent(q)}` : ""}` : `/plans?starred=1${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+                className={`text-xs rounded border px-2 py-1 ${starred ? "border-accent/60 bg-accent/15 text-accent" : "border-border hover:bg-muted/60"}`}>★ starred</Link>
+          {(q || starred) && <Link href="/plans" className="text-xs text-mutedfg hover:text-fg">clear</Link>}
         </form>
       </header>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -44,7 +49,8 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
           return (
             <Link key={p.slug} href={`/plans/${encodeURIComponent(p.slug)}`}
               className="rounded-lg border border-border bg-card/60 p-4 hover:border-accent/60 hover:bg-muted/40 transition">
-              <div className="text-xs text-mutedfg flex gap-2 mb-1">
+              <div className="text-xs text-mutedfg flex gap-2 mb-1 items-baseline">
+                {p.starred ? <span className="text-yellow-300">★</span> : null}
                 <span>{fmtRelative(p.mtime)}</span>
                 <span>· {p.word_count} words</span>
                 {pr.hasCheckboxes && (
@@ -52,6 +58,7 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
                 )}
               </div>
               <div className="font-medium leading-snug line-clamp-2">{p.title}</div>
+              {p.note && <div className="text-[11px] text-mutedfg italic mt-1 line-clamp-2">{p.note}</div>}
               {pr.hasCheckboxes && (
                 <div className="mt-2 h-1 rounded bg-muted overflow-hidden">
                   <div className="h-full bg-accent" style={{ width: `${pr.percent * 100}%` }} />
