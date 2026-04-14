@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+dist
+overseer.db
+overseer.db-journal
+overseer.db-shm
+overseer.db-wal
+.DS_Store
+*.log
+.env*.local
+.claude/
