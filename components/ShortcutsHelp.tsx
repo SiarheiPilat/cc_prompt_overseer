@@ -15,6 +15,10 @@ const SHORTCUTS: Shortcut[] = [
   { keys: ["End"],           desc: "Jump to last prompt",               scope: "/prompts" },
   { keys: ["x"],             desc: "Toggle checkbox on current row",    scope: "/prompts" },
   { keys: ["Shift + click"], desc: "Select a range of checkboxes",      scope: "/prompts" },
+
+  { keys: ["j", "↓"],        desc: "Next result",                       scope: "/search" },
+  { keys: ["k", "↑"],        desc: "Previous result",                   scope: "/search" },
+  { keys: ["Enter"],         desc: "Open selected result",              scope: "/search" },
 ];
 
 export function ShortcutsHelp() {
