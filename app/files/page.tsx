@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic";
 export default async function FilesPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
   const project = sp.project || "";
-  const files = fileUsage({ project: project || undefined, limit: 200 });
+  const limit = Math.min(1000, Math.max(10, Number(sp.limit) || 60));
+  const files = fileUsage({ project: project || undefined, limit });
   const exts = fileExtCounts();
   const projects = getProjects() as any[];
   const totalEdits = files.reduce((s: number, f: any) => s + (f.edits || 0), 0);
@@ -28,6 +29,10 @@ export default async function FilesPage({ searchParams }: { searchParams: Promis
                   className="bg-muted rounded px-2 py-1.5 text-sm min-w-[260px]">
             <option value="">all projects</option>
             {projects.map((p: any) => <option key={p.id} value={p.id}>{p.cwd || p.id}</option>)}
+          </select>
+          <select name="limit" defaultValue={String(limit)}
+                  className="bg-muted rounded px-2 py-1.5 text-sm">
+            {[30, 60, 100, 200, 500].map(n => <option key={n} value={n}>{n} rows</option>)}
           </select>
           <button className="bg-accent text-accentfg rounded px-3 py-1.5 text-sm hover:opacity-90">filter</button>
         </form>
