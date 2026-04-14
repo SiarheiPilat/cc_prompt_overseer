@@ -23,6 +23,7 @@ export async function GET(req: Request) {
     q, project, slash, starred, hasPlan,
     minLen, category: cat, from, to,
     orderBy, dir, limit,
+    fullText: true,
   });
 
   const stamp = new Date().toISOString().replace(/[:T]/g, "-").slice(0, 16);

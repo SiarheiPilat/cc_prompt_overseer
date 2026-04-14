@@ -2,6 +2,8 @@
 
 | date | target | before (ms) | after (ms) | mechanism |
 |---|---|---|---|---|
+| 2026-04-14 | /prompts?limit=500 warm | 210 | 164 | `queryPrompts` returns 300-char preview; full text lazy-fetched via `/api/prompt?id=X` when detail panel opens. Payload 820KB→399KB. |
+| 2026-04-14 | /prompts?limit=2000 warm | 790 | 200 | same mechanism. Payload 3.3MB→1.4MB. Export route opts in via `fullText: true` to avoid truncation. |
 
 ## Baseline sweep — 2026-04-14
 

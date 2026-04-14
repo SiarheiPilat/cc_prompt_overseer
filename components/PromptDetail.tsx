@@ -32,6 +32,11 @@ export function PromptDetail({
   const [saved, setSaved] = useState(false);
   const [similar, setSimilar] = useState<SimilarRow[] | null>(null);
   const [simLoading, setSimLoading] = useState(false);
+  // The prompt.text we receive from /prompts is truncated to 300 chars.
+  // If the full text is longer we lazy-fetch it when the panel opens.
+  const previewLen = prompt.text?.length || 0;
+  const needsFull = prompt.char_count > previewLen;
+  const [fullText, setFullText] = useState<string | null>(needsFull ? null : prompt.text);
 
   useEffect(() => {
     setNote(prompt.note || "");
@@ -39,6 +44,15 @@ export function PromptDetail({
     setTagsStr(parseTagsToStr(prompt.tags));
     setSaved(false);
     setSimilar(null);
+    // Reset text — if prompt was truncated, fetch full; else use as-is
+    const needs = prompt.char_count > (prompt.text?.length || 0);
+    setFullText(needs ? null : prompt.text);
+    if (needs) {
+      fetch(`/api/prompt?id=${prompt.id}`)
+        .then(r => r.json())
+        .then(j => { if (j && typeof j.text === "string") setFullText(j.text); })
+        .catch(() => setFullText(prompt.text)); // fall back to truncated preview on error
+    }
     if (!prompt.uuid) return;
     const ctrl = new AbortController();
     setSimLoading(true);
@@ -100,8 +114,9 @@ export function PromptDetail({
             open session →
           </Link>
           <pre className="whitespace-pre-wrap font-mono text-[13px] leading-relaxed bg-muted/60 rounded p-3 border border-border">
-            {prompt.text}
+            {fullText ?? (prompt.text + "…")}
           </pre>
+          {fullText === null && <div className="text-[10px] text-mutedfg -mt-2">loading full text…</div>}
           <div className="flex items-center gap-2">
             <span className="text-xs text-mutedfg w-14">rate</span>
             {[1,2,3,4,5].map(n => (

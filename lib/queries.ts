@@ -6,7 +6,7 @@ export type PromptRow = {
   session_id: string;
   project_id: string | null;
   ts: number;
-  text: string;
+  text: string;           // truncated preview in list contexts; full text when fetched via /api/prompt
   char_count: number;
   word_count: number;
   is_slash: number;
@@ -34,6 +34,7 @@ export type PromptQuery = {
   tag?: string;
   showHidden?: boolean;
   onlyHidden?: boolean;
+  fullText?: boolean;     // return complete p.text instead of a 300-char preview
   orderBy?: "ts" | "char_count" | "session_id" | "interest";
   dir?: "asc" | "desc";
   limit?: number;
@@ -71,8 +72,11 @@ export function queryPrompts(q: PromptQuery = {}): { rows: PromptRow[]; total: n
 
   const whereSql = where.length ? "WHERE " + where.join(" AND ") : "";
 
+  const textSelect = q.fullText ? "p.text AS text" : "substr(p.text, 1, 300) AS text";
   const sql = `
-    SELECT p.id, p.uuid, p.session_id, p.project_id, p.ts, p.text, p.char_count, p.word_count,
+    SELECT p.id, p.uuid, p.session_id, p.project_id, p.ts,
+           ${textSelect},
+           p.char_count, p.word_count,
            p.is_slash, p.slash_name, p.slug, pr.cwd,
            (CASE WHEN plans.slug IS NOT NULL THEN 1 ELSE 0 END) AS has_plan,
            COALESCE(um.starred,0) AS starred,
@@ -108,6 +112,10 @@ function ftsQuery(q: string): string {
     const safe = t.replace(/["*]/g, "");
     return safe ? `"${safe}"*` : "";
   }).filter(Boolean).join(" AND ");
+}
+
+export function getPromptFull(id: number): { text: string; char_count: number } | null {
+  return db().prepare(`SELECT text, char_count FROM prompts WHERE id=?`).get(id) as any;
 }
 
 export function hiddenCount(): number {
