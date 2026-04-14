@@ -8,6 +8,7 @@ import {
   BarChart3, Clock, Search, Cloud, GitGraph, FileText, RefreshCw,
   Coins, CalendarDays, Wrench, Sunrise, Sparkles, Columns2, TriangleAlert,
   TerminalSquare, Bot, Activity, Tag, Repeat, SlashSquare, Settings, Zap,
+  Layers,
 } from "lucide-react";
 import { useState } from "react";
 import { Playlists } from "./Playlists";
@@ -17,6 +18,7 @@ const nav = [
   { href: "/today", label: "Today", Icon: Sunrise },
   { href: "/week", label: "This Week", Icon: CalendarDays },
   { href: "/prompts", label: "All Prompts", Icon: MessageSquareText },
+  { href: "/sessions", label: "Sessions", Icon: Layers },
   { href: "/plans", label: "Plans", Icon: FileText },
   { href: "/projects", label: "Projects", Icon: FolderKanban },
   { href: "/burndown", label: "Burndown", Icon: Activity },

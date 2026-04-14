@@ -139,6 +139,29 @@ export function getProject(id: string) {
   return db().prepare(`SELECT * FROM projects WHERE id=?`).get(id);
 }
 
+export function getAllSessions(opts: { sort?: "started" | "prompts" | "cost"; limit?: number } = {}) {
+  const D = db();
+  // Cost sorting needs aggregation; keep a single query that computes per-session sums
+  const inner = `
+    SELECT s.id, s.slug, s.started_at, s.ended_at, s.turn_count,
+      s.permission_mode, pr.cwd,
+      (SELECT COUNT(*) FROM prompts WHERE session_id=s.id) AS prompt_count,
+      (SELECT slug FROM plans WHERE plans.slug = s.slug) AS plan_slug,
+      (SELECT SUM(input_tokens) FROM assistant_turns WHERE session_id=s.id) AS in_tok,
+      (SELECT SUM(output_tokens) FROM assistant_turns WHERE session_id=s.id) AS out_tok,
+      (SELECT SUM(cache_creation_tokens) FROM assistant_turns WHERE session_id=s.id) AS cw_tok,
+      (SELECT SUM(cache_read_tokens) FROM assistant_turns WHERE session_id=s.id) AS cr_tok,
+      (SELECT MAX(model) FROM assistant_turns WHERE session_id=s.id) AS model
+    FROM sessions s LEFT JOIN projects pr ON pr.id = s.project_id
+  `;
+  const sortCol =
+    opts.sort === "prompts" ? "prompt_count" :
+    opts.sort === "cost" ? "(COALESCE(out_tok,0) * 75 + COALESCE(in_tok,0) * 15 + COALESCE(cw_tok,0) * 18 + COALESCE(cr_tok,0))" :
+    "started_at";
+  const sql = `${inner} ORDER BY ${sortCol} DESC LIMIT ?`;
+  return D.prepare(sql).all(opts.limit ?? 200) as any[];
+}
+
 export function getSessionsForProject(id: string) {
   return db().prepare(`
     SELECT s.*,
