@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPlan, planFollowups } from "@/lib/queries";
-import { fmtDate, truncate } from "@/lib/utils";
+import { getPlan, planFollowups, getAdjacentPlans } from "@/lib/queries";
+import { fmtDate, fmtRelative, truncate } from "@/lib/utils";
 import { PlanView } from "@/components/PlanView";
 import { parsePlanProgress } from "@/lib/plan-progress";
 import { CheckSquare, Square } from "lucide-react";
@@ -14,6 +14,7 @@ export default async function PlanPage({ params }: { params: Promise<{ slug: str
   if (!p) return notFound();
   const progress = parsePlanProgress(p.body || "");
   const followups = planFollowups(p.slug, p.mtime || 0, 30);
+  const { prev: prevPlan, next: nextPlan } = getAdjacentPlans(p.slug);
   return (
     <div className="p-6 space-y-4 max-w-4xl">
       <header className="flex items-start justify-between gap-4">
@@ -51,6 +52,35 @@ export default async function PlanPage({ params }: { params: Promise<{ slug: str
           </ul>
         </section>
       )}
+      {(prevPlan || nextPlan) && (
+        <nav className="flex items-center justify-between gap-2 text-xs">
+          <div className="flex-1 min-w-0">
+            {prevPlan ? (
+              <Link href={`/plans/${encodeURIComponent(prevPlan.slug)}`}
+                    className="block rounded border border-border hover:border-accent/50 hover:bg-muted/40 px-3 py-2 transition">
+                <div className="text-mutedfg">← previous plan</div>
+                <div className="text-fg truncate">
+                  <span className="text-accent">{truncate(prevPlan.title || prevPlan.slug, 60)}</span>
+                  <span className="ml-2 text-mutedfg">{fmtRelative(prevPlan.mtime)} · {prevPlan.word_count}w</span>
+                </div>
+              </Link>
+            ) : <div />}
+          </div>
+          <div className="flex-1 min-w-0">
+            {nextPlan ? (
+              <Link href={`/plans/${encodeURIComponent(nextPlan.slug)}`}
+                    className="block rounded border border-border hover:border-accent/50 hover:bg-muted/40 px-3 py-2 transition text-right">
+                <div className="text-mutedfg">next plan →</div>
+                <div className="text-fg truncate">
+                  <span className="text-accent">{truncate(nextPlan.title || nextPlan.slug, 60)}</span>
+                  <span className="ml-2 text-mutedfg">{fmtRelative(nextPlan.mtime)} · {nextPlan.word_count}w</span>
+                </div>
+              </Link>
+            ) : <div />}
+          </div>
+        </nav>
+      )}
+
       <div className="rounded-lg border border-border bg-card/60 p-6">
         <PlanView body={p.body} />
       </div>

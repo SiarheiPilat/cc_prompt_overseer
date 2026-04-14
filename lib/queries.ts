@@ -198,6 +198,21 @@ export function getPlan(slug: string) {
   return db().prepare(`SELECT * FROM plans WHERE slug=?`).get(slug);
 }
 
+export function getAdjacentPlans(slug: string): { prev: any | null; next: any | null } {
+  const D = db();
+  const cur = D.prepare(`SELECT slug, mtime FROM plans WHERE slug=?`).get(slug) as any;
+  if (!cur || !cur.mtime) return { prev: null, next: null };
+  const prev = D.prepare(`
+    SELECT slug, title, mtime, word_count FROM plans
+    WHERE mtime < ? ORDER BY mtime DESC LIMIT 1
+  `).get(cur.mtime) as any;
+  const next = D.prepare(`
+    SELECT slug, title, mtime, word_count FROM plans
+    WHERE mtime > ? ORDER BY mtime ASC LIMIT 1
+  `).get(cur.mtime) as any;
+  return { prev: prev || null, next: next || null };
+}
+
 export function planFollowups(slug: string, sinceMs: number, limit = 30) {
   // Prompts in the linked session that came after the plan was written
   const D = db();
