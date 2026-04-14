@@ -5,6 +5,7 @@
 | 2026-04-14 | /prompts?limit=500 warm | 210 | 164 | `queryPrompts` returns 300-char preview; full text lazy-fetched via `/api/prompt?id=X` when detail panel opens. Payload 820KB→399KB. |
 | 2026-04-14 | /prompts?limit=2000 warm | 790 | 200 | same mechanism. Payload 3.3MB→1.4MB. Export route opts in via `fullText: true` to avoid truncation. |
 | 2026-04-14 | /files default warm | 910 | 341 | Default `limit` cut from 200→60 rows; added `limit` dropdown (30/60/100/200/500) + `?limit=N` URL param. Payload 1059KB→379KB. Root cause: RSC flight data was duplicating the 200-row table payload (~868KB), not DB work.
+| 2026-04-14 | /commands default warm | 627 | 278 | Same fix as /files: default `limit` 200→60, dropdown + URL param. Payload 1017KB→381KB. Same RSC-duplication root cause.
 
 ## Baseline sweep — 2026-04-14
 

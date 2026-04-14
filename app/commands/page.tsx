@@ -9,7 +9,8 @@ export default async function CommandsPage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const project = sp.project || "";
   const prefix = sp.prefix || "";
-  const cmds = bashCommands({ project: project || undefined, prefix: prefix || undefined, limit: 200 });
+  const limit = Math.min(1000, Math.max(10, Number(sp.limit) || 60));
+  const cmds = bashCommands({ project: project || undefined, prefix: prefix || undefined, limit });
   const lead = bashLeadingWords(project || undefined);
   const projects = getProjects() as any[];
   const totalRuns = cmds.reduce((s: number, c: any) => s + (c.n || 0), 0);
@@ -33,6 +34,10 @@ export default async function CommandsPage({ searchParams }: { searchParams: Pro
           </select>
           <input name="prefix" defaultValue={prefix} placeholder="prefix (e.g. git)"
                  className="bg-muted rounded px-2 py-1.5 text-sm w-40" />
+          <select name="limit" defaultValue={String(limit)}
+                  className="bg-muted rounded px-2 py-1.5 text-sm">
+            {[30, 60, 100, 200, 500].map(n => <option key={n} value={n}>{n} rows</option>)}
+          </select>
           <button className="bg-accent text-accentfg rounded px-3 py-1.5 text-sm hover:opacity-90">filter</button>
         </form>
       </header>
