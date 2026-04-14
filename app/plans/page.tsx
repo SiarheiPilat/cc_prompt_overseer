@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getPlans } from "@/lib/queries";
 import { fmtRelative, truncate } from "@/lib/utils";
 import { parsePlanProgress } from "@/lib/plan-progress";
+import { PlanStarButton } from "@/components/PlanStarButton";
 
 export const dynamic = "force-dynamic";
 
@@ -47,31 +48,35 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
           const pr = p.progress;
           const snippet = q ? snippetAround(p.body || "", q) : null;
           return (
-            <Link key={p.slug} href={`/plans/${encodeURIComponent(p.slug)}`}
-              className="rounded-lg border border-border bg-card/60 p-4 hover:border-accent/60 hover:bg-muted/40 transition">
-              <div className="text-xs text-mutedfg flex gap-2 mb-1 items-baseline">
-                {p.starred ? <span className="text-yellow-300">★</span> : null}
-                <span>{fmtRelative(p.mtime)}</span>
-                <span>· {p.word_count} words</span>
-                {pr.hasCheckboxes && (
-                  <span className="ml-auto text-accent tabular-nums">{pr.done}/{pr.total}</span>
-                )}
+            <div key={p.slug}
+              className="rounded-lg border border-border bg-card/60 p-4 hover:border-accent/60 transition relative">
+              <div className="absolute top-2 right-2 z-10">
+                <PlanStarButton slug={p.slug} initial={!!p.starred} />
               </div>
-              <div className="font-medium leading-snug line-clamp-2">{p.title}</div>
-              {p.note && <div className="text-[11px] text-mutedfg italic mt-1 line-clamp-2">{p.note}</div>}
-              {pr.hasCheckboxes && (
-                <div className="mt-2 h-1 rounded bg-muted overflow-hidden">
-                  <div className="h-full bg-accent" style={{ width: `${pr.percent * 100}%` }} />
+              <Link href={`/plans/${encodeURIComponent(p.slug)}`} className="block hover:bg-muted/40 -m-4 p-4 rounded-lg">
+                <div className="text-xs text-mutedfg flex gap-2 mb-1 items-baseline pr-7">
+                  <span>{fmtRelative(p.mtime)}</span>
+                  <span>· {p.word_count} words</span>
+                  {pr.hasCheckboxes && (
+                    <span className="ml-auto text-accent tabular-nums">{pr.done}/{pr.total}</span>
+                  )}
                 </div>
-              )}
-              {snippet && (
-                <div className="text-[11px] text-mutedfg mt-2 italic leading-snug line-clamp-3">{truncate(snippet, 240)}</div>
-              )}
-              <div className="text-[11px] text-mutedfg mt-2 truncate">{p.slug}</div>
-              {p.linked_session_id && (
-                <div className="text-[11px] text-accent mt-1">linked session</div>
-              )}
-            </Link>
+                <div className="font-medium leading-snug line-clamp-2 pr-7">{p.title}</div>
+                {p.note && <div className="text-[11px] text-mutedfg italic mt-1 line-clamp-2">{p.note}</div>}
+                {pr.hasCheckboxes && (
+                  <div className="mt-2 h-1 rounded bg-muted overflow-hidden">
+                    <div className="h-full bg-accent" style={{ width: `${pr.percent * 100}%` }} />
+                  </div>
+                )}
+                {snippet && (
+                  <div className="text-[11px] text-mutedfg mt-2 italic leading-snug line-clamp-3">{truncate(snippet, 240)}</div>
+                )}
+                <div className="text-[11px] text-mutedfg mt-2 truncate">{p.slug}</div>
+                {p.linked_session_id && (
+                  <div className="text-[11px] text-accent mt-1">linked session</div>
+                )}
+              </Link>
+            </div>
           );
         })}
         {plans.length === 0 && (
