@@ -798,6 +798,10 @@ export function sessionToolCounts(sessionId: string) {
   `).all(sessionId) as Array<{ name: string; n: number }>;
 }
 
+export function invalidateQueryCaches() {
+  // no-op; kept as a hook for future query-level caches
+}
+
 export function fileUsage(opts: { project?: string; limit?: number } = {}) {
   const D = db();
   const where: string[] = ["file_path IS NOT NULL"];

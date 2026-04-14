@@ -3,6 +3,7 @@ import chokidar, { type FSWatcher } from "chokidar";
 import { paths } from "./claude-paths";
 import { indexAll } from "./indexer";
 import { invalidateSimilarity } from "./similarity";
+import { invalidateQueryCaches } from "./queries";
 
 type Bus = EventEmitter & { lastEvent?: any; lastIndexedAt?: number };
 
@@ -33,6 +34,7 @@ function setup(): { bus: Bus; watcher: FSWatcher } {
       try {
         const stats = indexAll();
         invalidateSimilarity();
+        invalidateQueryCaches();
         bus.lastEvent = { type: "indexed", reason, ...stats, at: Date.now() };
         bus.lastIndexedAt = bus.lastEvent.at;
         bus.emit("event", bus.lastEvent);
