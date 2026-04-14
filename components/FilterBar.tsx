@@ -95,6 +95,23 @@ export function FilterBar({
     start(() => router.push("/prompts"));
   }
 
+  function applyRange(days: number) {
+    persist();
+    const p = new URLSearchParams(buildUrl().split("?")[1] || "");
+    if (days <= 0) {
+      p.delete("from"); p.delete("to");
+    } else {
+      const now = Date.now();
+      p.set("from", String(now - days * 86400000));
+      p.set("to", String(now));
+    }
+    start(() => router.push(`/prompts?${p.toString()}`));
+  }
+
+  const fromParam = sp.get("from");
+  const toParam = sp.get("to");
+  const dateRangeActive = !!fromParam || !!toParam;
+
   const hasActive = q || project || slash || starred || hasPlan || permissionMode || minLen || orderBy !== "ts" || dir !== "desc" || (limit && limit !== "500");
 
   return (
@@ -156,6 +173,13 @@ export function FilterBar({
                 title="reset filters and clear saved state">
           clear
         </button>
+      )}
+      <span className="text-[10px] text-mutedfg ml-2">date:</span>
+      <button onClick={() => applyRange(1)} className="text-[11px] rounded border border-border px-2 py-0.5 hover:bg-muted/60 hover:text-accent" title="last 24h">24h</button>
+      <button onClick={() => applyRange(7)} className="text-[11px] rounded border border-border px-2 py-0.5 hover:bg-muted/60 hover:text-accent" title="last 7 days">7d</button>
+      <button onClick={() => applyRange(30)} className="text-[11px] rounded border border-border px-2 py-0.5 hover:bg-muted/60 hover:text-accent" title="last 30 days">30d</button>
+      {dateRangeActive && (
+        <button onClick={() => applyRange(0)} className="text-[11px] rounded border border-border px-2 py-0.5 hover:bg-muted/60 text-mutedfg" title="clear date range">all time</button>
       )}
       <div className="ml-auto flex items-center gap-1">
         <SaveButton getQuery={() => buildUrl().split("?")[1] || ""} />
