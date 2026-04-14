@@ -5,6 +5,28 @@ import { fmtCost, fmtTokens, costUSD } from "@/lib/pricing";
 import { Star } from "lucide-react";
 import { SessionStarButton } from "@/components/SessionStarButton";
 
+function ModelBadge({ model }: { model: string | null }) {
+  if (!model) return <span className="text-mutedfg">—</span>;
+  // Extract family + version: "claude-opus-4-6" -> "opus-4-6"
+  const m = model.toLowerCase().replace(/\[[^\]]+\]/g, "").replace(/-2\d{7}/g, "");
+  const short = m.replace(/^claude-/, "");
+  const family =
+    m.includes("opus") ? "opus" :
+    m.includes("sonnet") ? "sonnet" :
+    m.includes("haiku") ? "haiku" :
+    "other";
+  const tone =
+    family === "opus" ? "text-fuchsia-300 border-fuchsia-500/30 bg-fuchsia-500/10" :
+    family === "sonnet" ? "text-cyan-300 border-cyan-500/30 bg-cyan-500/10" :
+    family === "haiku" ? "text-emerald-300 border-emerald-500/30 bg-emerald-500/10" :
+    "text-mutedfg border-border";
+  return (
+    <span className={`inline-block rounded border px-1.5 py-0.5 text-[10px] font-mono ${tone}`} title={model}>
+      {short}
+    </span>
+  );
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function SessionsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -136,6 +158,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
               <th className="text-right px-3 py-2 w-20">turns</th>
               <th className="text-right px-3 py-2 w-20">output</th>
               <th className="text-right px-3 py-2 w-20">cost</th>
+              <th className="text-left px-3 py-2 w-20">model</th>
               <th className="text-left px-3 py-2 w-28">perm</th>
             </tr>
           </thead>
@@ -161,6 +184,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
                 <td className="px-3 py-1.5 text-right tabular-nums">
                   {fmtCost(costUSD(s.model, s.in_tok || 0, s.out_tok || 0, s.cw_tok || 0, s.cr_tok || 0))}
                 </td>
+                <td className="px-3 py-1.5 text-xs whitespace-nowrap"><ModelBadge model={s.model} /></td>
                 <td className="px-3 py-1.5 text-xs text-mutedfg whitespace-nowrap">{s.permission_mode || ""}</td>
               </tr>
             ))}
