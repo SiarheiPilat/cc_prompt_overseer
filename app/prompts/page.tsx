@@ -19,6 +19,7 @@ export default async function PromptsPage({ searchParams }: { searchParams: Prom
   const limit = Math.min(2000, Number(sp.limit) || 500);
   const cat = sp.cat || "";
   const tag = sp.tag || "";
+  const permissionMode = sp.perm || "";
   const from = sp.from ? Number(sp.from) : undefined;
   const to = sp.to ? Number(sp.to) : undefined;
 
@@ -26,6 +27,7 @@ export default async function PromptsPage({ searchParams }: { searchParams: Prom
     q, project: project || undefined, slash, starred, hasPlan,
     minLen, orderBy, dir, limit, offset: 0,
     category: cat || undefined, tag: tag || undefined,
+    permissionMode: permissionMode || undefined,
     showHidden, onlyHidden,
     from, to,
   });
@@ -45,7 +47,7 @@ export default async function PromptsPage({ searchParams }: { searchParams: Prom
           </p>
         </div>
       </header>
-      <FilterBar projects={projects} initial={{ q, project, slash, starred, hasPlan, showHidden, onlyHidden, minLen, orderBy, dir, limit }} />
+      <FilterBar projects={projects} initial={{ q, project, slash, starred, hasPlan, showHidden, onlyHidden, minLen, orderBy, dir, limit, permissionMode }} />
       <PromptTable rows={rows} allowUnhide={onlyHidden || showHidden} />
     </div>
   );

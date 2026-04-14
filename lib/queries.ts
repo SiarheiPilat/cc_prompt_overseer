@@ -32,6 +32,7 @@ export type PromptQuery = {
   to?: number;
   category?: string;
   tag?: string;
+  permissionMode?: string;
   showHidden?: boolean;
   onlyHidden?: boolean;
   fullText?: boolean;     // return complete p.text instead of a 300-char preview
@@ -54,6 +55,10 @@ export function queryPrompts(q: PromptQuery = {}): { rows: PromptRow[]; total: n
   if (q.to) { where.push("p.ts <= ?"); params.push(q.to); }
   if (q.category) { where.push("p.category = ?"); params.push(q.category); }
   if (q.tag) { where.push("um.tags LIKE ?"); params.push(`%"${q.tag.replace(/"/g, "")}"%`); }
+  if (q.permissionMode) {
+    where.push("p.session_id IN (SELECT id FROM sessions WHERE permission_mode = ?)");
+    params.push(q.permissionMode);
+  }
   if (q.onlyHidden) { where.push("COALESCE(um.hidden,0) = 1"); }
   else if (!q.showHidden) { where.push("COALESCE(um.hidden,0) = 0"); }
   if (q.q && q.q.trim()) {

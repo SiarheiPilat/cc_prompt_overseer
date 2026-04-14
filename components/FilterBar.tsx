@@ -8,7 +8,7 @@ export function FilterBar({
   projects, initial,
 }: {
   projects: any[];
-  initial: { q: string; project: string; slash: boolean; starred: boolean; hasPlan: boolean; showHidden?: boolean; onlyHidden?: boolean; minLen?: number; orderBy: string; dir: string; limit: number };
+  initial: { q: string; project: string; slash: boolean; starred: boolean; hasPlan: boolean; showHidden?: boolean; onlyHidden?: boolean; minLen?: number; orderBy: string; dir: string; limit: number; permissionMode?: string };
 }) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -18,6 +18,7 @@ export function FilterBar({
   const [slash, setSlash] = useState(initial.slash);
   const [starred, setStarred] = useState(initial.starred);
   const [hasPlan, setHasPlan] = useState(initial.hasPlan);
+  const [permissionMode, setPermissionMode] = useState(initial.permissionMode || "");
   const [showHidden, setShowHidden] = useState(!!initial.showHidden);
   const [onlyHidden, setOnlyHidden] = useState(!!initial.onlyHidden);
   const [minLen, setMinLen] = useState<string>(initial.minLen ? String(initial.minLen) : "");
@@ -58,6 +59,7 @@ export function FilterBar({
     if (slash) p.set("slash", "1");
     if (starred) p.set("starred", "1");
     if (hasPlan) p.set("hasPlan", "1");
+    if (permissionMode) p.set("perm", permissionMode);
     if (showHidden) p.set("showHidden", "1");
     if (onlyHidden) p.set("onlyHidden", "1");
     if (minLen) p.set("minLen", minLen);
@@ -75,7 +77,7 @@ export function FilterBar({
   function persist() {
     try {
       localStorage.setItem(LS_KEY, JSON.stringify({
-        q, project, slash, starred, hasPlan, minLen, orderBy, dir, limit,
+        q, project, slash, starred, hasPlan, permissionMode, minLen, orderBy, dir, limit,
       }));
     } catch {}
   }
@@ -88,11 +90,12 @@ export function FilterBar({
   function clearAll() {
     try { localStorage.removeItem(LS_KEY); } catch {}
     setQ(""); setProject(""); setSlash(false); setStarred(false); setHasPlan(false);
+    setPermissionMode("");
     setMinLen(""); setOrderBy("ts"); setDir("desc"); setLimit("500");
     start(() => router.push("/prompts"));
   }
 
-  const hasActive = q || project || slash || starred || hasPlan || minLen || orderBy !== "ts" || dir !== "desc" || (limit && limit !== "500");
+  const hasActive = q || project || slash || starred || hasPlan || permissionMode || minLen || orderBy !== "ts" || dir !== "desc" || (limit && limit !== "500");
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card/60 p-3">
@@ -112,6 +115,13 @@ export function FilterBar({
       <label className="text-xs flex items-center gap-1.5 px-2 py-1 rounded bg-muted cursor-pointer">
         <input type="checkbox" checked={hasPlan} onChange={e => setHasPlan(e.target.checked)} />has plan
       </label>
+      <select className="bg-muted rounded px-2 py-1.5 text-sm" value={permissionMode} onChange={e => setPermissionMode(e.target.value)} title="filter by session permission mode">
+        <option value="">any perm</option>
+        <option value="default">default</option>
+        <option value="acceptEdits">acceptEdits</option>
+        <option value="bypassPermissions">bypassPermissions</option>
+        <option value="plan">plan</option>
+      </select>
       <label className="text-xs flex items-center gap-1.5 px-2 py-1 rounded bg-muted cursor-pointer" title="include prompts you've hidden">
         <input type="checkbox" checked={showHidden} onChange={e => { setShowHidden(e.target.checked); if (e.target.checked) setOnlyHidden(false); }} />show hidden
       </label>
