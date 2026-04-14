@@ -383,6 +383,22 @@ export function slashHistogram() {
   `).all() as Array<{ slash_name: string; n: number }>;
 }
 
+export function searchSessions(q: string, limit = 30) {
+  if (!q.trim()) return [];
+  const term = `%${q.trim()}%`;
+  return db().prepare(`
+    SELECT s.id, s.slug, s.started_at, s.turn_count,
+      pr.cwd, sm.note,
+      COALESCE(sm.starred, 0) AS starred,
+      (SELECT COUNT(*) FROM prompts WHERE session_id=s.id) AS prompt_count
+    FROM sessions s
+    LEFT JOIN projects pr ON pr.id = s.project_id
+    LEFT JOIN session_meta sm ON sm.session_id = s.id
+    WHERE s.slug LIKE ? OR pr.cwd LIKE ? OR sm.note LIKE ? OR sm.tags LIKE ?
+    ORDER BY s.started_at DESC LIMIT ?
+  `).all(term, term, term, term, limit) as any[];
+}
+
 export function searchPlans(q: string, limit = 30) {
   if (!q.trim()) return [];
   const term = `%${q.trim()}%`;
