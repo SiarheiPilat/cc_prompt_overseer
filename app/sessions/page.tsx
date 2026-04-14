@@ -41,6 +41,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
   const tag = sp.tag || "";
   const q = sp.q || "";
   const project = sp.project || "";
+  const model = sp.model || "";
   const now = Date.now();
   const from = days > 0 ? now - days * 86400000 : undefined;
 
@@ -50,6 +51,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
     tag: tag || undefined,
     q: q || undefined,
     project: project || undefined,
+    model: model || undefined,
   });
   const projects = getProjects() as any[];
   const totalCost = sessions.reduce((sum, s) =>
@@ -68,6 +70,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
     if (tag) p.set("tag", tag);
     if (q) p.set("q", q);
     if (project) p.set("project", project);
+    if (model) p.set("model", model);
     for (const [k, v] of Object.entries(overrides)) {
       if (v == null || v === "") p.delete(k);
       else p.set(k, v);
@@ -108,6 +111,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
             {tag && <input type="hidden" name="tag" value={tag} />}
             {sort !== "started" && <input type="hidden" name="sort" value={sort} />}
             {limit !== 200 && <input type="hidden" name="limit" value={String(limit)} />}
+            {model && <input type="hidden" name="model" value={model} />}
             <select name="project" defaultValue={project}
                     className="bg-muted rounded px-2 py-1 text-xs max-w-[180px]">
               <option value="">all projects</option>
@@ -137,11 +141,15 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
         {chip(days === 1,  "today",  url({ days: days === 1  ? null : "1" }))}
         {chip(days === 7,  "7 days", url({ days: days === 7  ? null : "7" }))}
         {chip(days === 30, "30 days", url({ days: days === 30 ? null : "30" }))}
+        <span className="text-mutedfg ml-2">model:</span>
+        {(["opus","sonnet","haiku"] as const).map(m =>
+          <span key={m}>{chip(model === m, m, url({ model: model === m ? null : m }))}</span>
+        )}
         <span className="text-mutedfg ml-2">perm:</span>
         {(["default","acceptEdits","bypassPermissions","plan"] as const).map(p =>
           <span key={p}>{chip(perm === p, p, url({ perm: perm === p ? null : p }))}</span>
         )}
-        {(hasPlan || marathon || starred || days || perm || q || tag || project) && (
+        {(hasPlan || marathon || starred || days || perm || q || tag || project || model) && (
           <Link href="/sessions" className="text-[11px] text-mutedfg hover:text-fg ml-2 underline">clear filters</Link>
         )}
       </div>

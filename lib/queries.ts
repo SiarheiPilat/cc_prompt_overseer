@@ -151,6 +151,7 @@ export function getAllSessions(opts: {
   tag?: string;
   q?: string;
   project?: string;
+  model?: string;     // family substring: "opus", "sonnet", "haiku"
 } = {}) {
   const D = db();
   const where: string[] = [];
@@ -167,6 +168,10 @@ export function getAllSessions(opts: {
     where.push("(s.slug LIKE ? OR pr.cwd LIKE ? OR sm.note LIKE ?)");
     const pat = `%${opts.q}%`;
     params.push(pat, pat, pat);
+  }
+  if (opts.model) {
+    where.push("EXISTS (SELECT 1 FROM assistant_turns at2 WHERE at2.session_id = s.id AND at2.model LIKE ?)");
+    params.push(`%${opts.model}%`);
   }
   const whereSql = where.length ? "WHERE " + where.join(" AND ") : "";
   const inner = `
