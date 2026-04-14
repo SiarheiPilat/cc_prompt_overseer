@@ -114,6 +114,14 @@ function migrate(d: Database.Database) {
       tags TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS session_meta (
+      session_id TEXT PRIMARY KEY,
+      starred INTEGER DEFAULT 0,
+      note TEXT,
+      tags TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_sm_starred ON session_meta(starred);
+
     CREATE TABLE IF NOT EXISTS tool_calls (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       session_id TEXT,

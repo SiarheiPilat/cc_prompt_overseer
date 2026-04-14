@@ -6,6 +6,7 @@ import { fmtTokens, fmtCost, costUSD } from "@/lib/pricing";
 import { SessionReplay } from "@/components/SessionReplay";
 import { SessionBursts } from "@/components/SessionBursts";
 import { ResumeButton } from "@/components/ResumeButton";
+import { SessionMetaPanel } from "@/components/SessionMetaPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +76,7 @@ export default async function SessionPage({
           <div className="text-xs text-mutedfg mt-1">cwd: {s.cwd || "?"}</div>
         </div>
         <div className="flex gap-2 items-center flex-wrap">
+          <SessionMetaPanel sessionId={s.id} />
           <ResumeButton sessionId={s.id} cwd={s.cwd || null} />
           {plan && <Link className="text-sm bg-accent/20 text-accent px-3 py-1.5 rounded hover:bg-accent/30"
                         href={`/plans/${encodeURIComponent(plan.slug)}`}>plan: {truncate(plan.title, 40)} →</Link>}
