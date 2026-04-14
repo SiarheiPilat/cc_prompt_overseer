@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 
 type Top = { session_id: string; slug: string | null; n: number };
 
@@ -38,8 +38,8 @@ export function Heatmap({
           <div key={h} className="text-[9px] text-mutedfg text-center">{h%6===0?h:""}</div>
         ))}
         {days.map((d, i) => (
-          <>
-            <div key={`d${i}`} className="text-[10px] text-mutedfg pr-2 self-center">{d}</div>
+          <Fragment key={i}>
+            <div className="text-[10px] text-mutedfg pr-2 self-center">{d}</div>
             {grid[i].map((n, h) => {
               const intensity = max ? n / max : 0;
               const bg = n === 0 ? "hsl(var(--muted))" : `hsla(265, 85%, ${70 - intensity*45}%, ${0.3 + intensity*0.7})`;
@@ -52,7 +52,7 @@ export function Heatmap({
                      title={topSessions ? undefined : `${d} ${h}:00 — ${n}`} />
               );
             })}
-          </>
+          </Fragment>
         ))}
       </div>
       {hover && hoverTop && hoverTop.length > 0 && (

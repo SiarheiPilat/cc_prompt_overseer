@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { AppSidebar } from "@/components/AppSidebar";
 import { CommandPalette } from "@/components/CommandPalette";
+import { ShortcutsHelp } from "@/components/ShortcutsHelp";
 
 export const metadata: Metadata = {
   title: "CC Prompt Overseer",
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppSidebar />
         <main className="flex-1 min-w-0 overflow-x-hidden">{children}</main>
         <CommandPalette />
+        <ShortcutsHelp />
       </body>
     </html>
   );
