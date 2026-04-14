@@ -9,14 +9,45 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const sort = (sp.sort as any) || "started";
   const limit = Math.min(1000, Math.max(20, Number(sp.limit) || 200));
-  const sessions = getAllSessions({ sort, limit });
+  const hasPlan = sp.hasPlan === "1";
+  const marathon = sp.marathon === "1";
+  const days = Number(sp.days) || 0;
+  const perm = sp.perm || "";
+  const now = Date.now();
+  const from = days > 0 ? now - days * 86400000 : undefined;
+
+  const sessions = getAllSessions({
+    sort, limit, hasPlan, marathon, from,
+    perm: perm || undefined,
+  });
   const totalCost = sessions.reduce((sum, s) =>
     sum + costUSD(s.model, s.in_tok || 0, s.out_tok || 0, s.cw_tok || 0, s.cr_tok || 0), 0);
 
+  // Helper to build a URL preserving current params + toggling/setting one
+  function url(overrides: Record<string, string | null>): string {
+    const p = new URLSearchParams();
+    if (sort !== "started") p.set("sort", sort);
+    if (limit !== 200) p.set("limit", String(limit));
+    if (hasPlan) p.set("hasPlan", "1");
+    if (marathon) p.set("marathon", "1");
+    if (days) p.set("days", String(days));
+    if (perm) p.set("perm", perm);
+    for (const [k, v] of Object.entries(overrides)) {
+      if (v == null || v === "") p.delete(k);
+      else p.set(k, v);
+    }
+    const s = p.toString();
+    return s ? `/sessions?${s}` : "/sessions";
+  }
+  const chip = (active: boolean, label: string, href: string) => (
+    <Link href={href} className={`text-[11px] rounded border px-2 py-0.5 ${active
+      ? "border-accent/60 bg-accent/15 text-accent"
+      : "border-border hover:bg-muted/60 hover:text-accent"}`}>{label}</Link>
+  );
   const sortLink = (key: string, label: string) =>
     sort === key
       ? <span className="text-accent font-medium">{label}</span>
-      : <Link href={`/sessions?sort=${key}${limit !== 200 ? `&limit=${limit}` : ""}`} className="hover:text-accent">{label}</Link>;
+      : <Link href={url({ sort: key === "started" ? null : key })} className="hover:text-accent">{label}</Link>;
 
   return (
     <div className="p-6 space-y-4 max-w-7xl">
@@ -24,7 +55,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
         <div>
           <h1 className="text-2xl font-semibold">Sessions</h1>
           <p className="text-sm text-mutedfg">
-            All {sessions.length} sessions{limit < 1000 && " (limit applied)"} · {fmtCost(totalCost)} estimated total
+            {sessions.length} sessions{limit < 1000 && " · limit applied"} · {fmtCost(totalCost)} estimated total
           </p>
         </div>
         <div className="flex gap-3 text-xs items-center">
@@ -34,11 +65,27 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
           {sortLink("cost", "highest cost")}
           <span className="text-mutedfg ml-3">limit:</span>
           {[100, 200, 500, 1000].map(n => (
-            <Link key={n} href={`/sessions?sort=${sort}&limit=${n}`}
+            <Link key={n} href={url({ limit: n === 200 ? null : String(n) })}
               className={`hover:text-accent ${limit === n ? "text-accent font-medium" : ""}`}>{n}</Link>
           ))}
         </div>
       </header>
+
+      <div className="flex flex-wrap items-center gap-1.5 text-xs">
+        <span className="text-mutedfg">filter:</span>
+        {chip(hasPlan,  "with plan",  url({ hasPlan: hasPlan ? null : "1" }))}
+        {chip(marathon, "marathon (>4h)", url({ marathon: marathon ? null : "1" }))}
+        {chip(days === 1,  "today",  url({ days: days === 1  ? null : "1" }))}
+        {chip(days === 7,  "7 days", url({ days: days === 7  ? null : "7" }))}
+        {chip(days === 30, "30 days", url({ days: days === 30 ? null : "30" }))}
+        <span className="text-mutedfg ml-2">perm:</span>
+        {(["default","acceptEdits","bypassPermissions","plan"] as const).map(p =>
+          <span key={p}>{chip(perm === p, p, url({ perm: perm === p ? null : p }))}</span>
+        )}
+        {(hasPlan || marathon || days || perm) && (
+          <Link href="/sessions" className="text-[11px] text-mutedfg hover:text-fg ml-2 underline">clear filters</Link>
+        )}
+      </div>
 
       <section className="rounded-lg border border-border bg-card/60 overflow-hidden">
         <table className="w-full text-sm">
