@@ -3,6 +3,7 @@ import { getAllSessions } from "@/lib/queries";
 import { fmtDate, fmtRelative, basename } from "@/lib/utils";
 import { fmtCost, fmtTokens, costUSD } from "@/lib/pricing";
 import { Star } from "lucide-react";
+import { SessionStarButton } from "@/components/SessionStarButton";
 
 export const dynamic = "force-dynamic";
 
@@ -117,6 +118,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
         <table className="w-full text-sm">
           <thead className="text-xs text-mutedfg sticky top-0 bg-card/80 backdrop-blur">
             <tr className="border-b border-border">
+              <th className="px-2 py-2 w-8"></th>
               <th className="text-left px-3 py-2 w-32">started</th>
               <th className="text-left px-3 py-2">slug</th>
               <th className="text-left px-3 py-2">project</th>
@@ -130,11 +132,11 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
           <tbody>
             {sessions.map((s: any) => (
               <tr key={s.id} className="border-b border-border/60 hover:bg-muted/40">
+                <td className="px-2 py-1.5 text-center"><SessionStarButton sessionId={s.id} initial={!!s.starred} /></td>
                 <td className="px-3 py-1.5 text-xs text-mutedfg tabular-nums whitespace-nowrap">{fmtDate(s.started_at).slice(0, 16)}</td>
                 <td className="px-3 py-1.5 max-w-0">
                   <Link className="text-accent hover:underline truncate flex items-center gap-1.5"
                         href={`/sessions/${s.id}`} title={s.note || undefined}>
-                    {s.starred ? <Star className="h-3 w-3 text-yellow-300 shrink-0" fill="currentColor" /> : null}
                     <span className="truncate">{s.slug || s.id.slice(0, 8)}</span>
                     {s.plan_slug && <span className="text-[10px] bg-accent/20 text-accent rounded px-1.5 py-0.5 shrink-0">plan</span>}
                     {s.note && <span className="text-[10px] text-mutedfg italic truncate">· {s.note.slice(0, 60)}</span>}
