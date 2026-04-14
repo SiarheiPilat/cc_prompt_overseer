@@ -1218,6 +1218,24 @@ export function sessionCandidates() {
   `).all() as any[];
 }
 
+export function starredSessions(limit = 20) {
+  return db().prepare(`
+    SELECT s.id, s.slug, s.started_at, s.turn_count, s.permission_mode, pr.cwd,
+      sm.note,
+      (SELECT COUNT(*) FROM prompts WHERE session_id=s.id) AS prompt_count,
+      (SELECT SUM(input_tokens) FROM assistant_turns WHERE session_id=s.id) AS in_tok,
+      (SELECT SUM(output_tokens) FROM assistant_turns WHERE session_id=s.id) AS out_tok,
+      (SELECT SUM(cache_creation_tokens) FROM assistant_turns WHERE session_id=s.id) AS cw_tok,
+      (SELECT SUM(cache_read_tokens) FROM assistant_turns WHERE session_id=s.id) AS cr_tok,
+      (SELECT MAX(model) FROM assistant_turns WHERE session_id=s.id) AS model
+    FROM sessions s
+    JOIN session_meta sm ON sm.session_id = s.id
+    LEFT JOIN projects pr ON pr.id = s.project_id
+    WHERE sm.starred = 1
+    ORDER BY s.started_at DESC LIMIT ?
+  `).all(limit) as any[];
+}
+
 export function highlights() {
   const D = db();
   const starred = D.prepare(`

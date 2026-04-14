@@ -1,13 +1,14 @@
 import Link from "next/link";
-import { highlights } from "@/lib/queries";
+import { highlights, starredSessions } from "@/lib/queries";
 import { fmtDate, fmtRelative, truncate, basename } from "@/lib/utils";
-import { fmtTokens } from "@/lib/pricing";
-import { Star, FileText, Sparkles, Zap, Tag } from "lucide-react";
+import { fmtTokens, fmtCost, costUSD } from "@/lib/pricing";
+import { Star, FileText, Sparkles, Zap, Tag, Bookmark } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default function HighlightsPage() {
   const h = highlights();
+  const stars = starredSessions(20);
   return (
     <div className="p-6 space-y-6 max-w-6xl">
       <header>
@@ -15,8 +16,33 @@ export default function HighlightsPage() {
         <p className="text-sm text-mutedfg">A personal "best of" across your history.</p>
       </header>
 
+      {stars.length > 0 && (
+        <Section title="Starred sessions" Icon={Bookmark} hint="full sessions you flagged via the session header star">
+          <ul className="space-y-1">
+            {stars.map(s => (
+              <li key={s.id}>
+                <Link className="block rounded p-2 hover:bg-muted/60 border border-transparent hover:border-border" href={`/sessions/${s.id}`}>
+                  <div className="flex items-baseline gap-2">
+                    <Star className="h-3 w-3 text-yellow-300 shrink-0" fill="currentColor" />
+                    <span className="text-[11px] text-mutedfg tabular-nums">{fmtDate(s.started_at)}</span>
+                    <span className="text-accent truncate flex-1 min-w-0">{s.slug || s.id.slice(0, 8)}</span>
+                    <span className="text-[11px] text-mutedfg">{s.prompt_count}p · {s.turn_count}t</span>
+                    <span className="text-[11px] text-mutedfg w-16 text-right">{fmtTokens(s.out_tok || 0)} out</span>
+                    <span className="text-[11px] text-fg w-16 text-right tabular-nums">
+                      {fmtCost(costUSD(s.model, s.in_tok || 0, s.out_tok || 0, s.cw_tok || 0, s.cr_tok || 0))}
+                    </span>
+                  </div>
+                  {s.note && <div className="text-[11px] text-mutedfg italic mt-0.5 line-clamp-2">{s.note}</div>}
+                  {s.cwd && <div className="text-[11px] text-mutedfg mt-0.5 truncate">{s.cwd}</div>}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
       {h.starred.length > 0 && (
-        <Section title="Starred by you" Icon={Star} hint="prompts you flagged; ordered by rating">
+        <Section title="Starred prompts" Icon={Star} hint="individual prompts you flagged; ordered by rating">
           <div className="grid md:grid-cols-2 gap-3">
             {h.starred.map(p => (
               <PromptCard key={p.id} p={p} />
