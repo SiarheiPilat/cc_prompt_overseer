@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { fileDetail } from "@/lib/queries";
-import { fmtDate, fmtRelative, basename } from "@/lib/utils";
+import { fileDetail, promptsMentioningFile } from "@/lib/queries";
+import { fmtDate, fmtRelative, basename, truncate } from "@/lib/utils";
 import { fmtDuration } from "@/lib/bursts";
 import { Sparkline } from "@/components/Sparkline";
 
@@ -18,6 +18,7 @@ export default async function FileDetailPage({ searchParams }: { searchParams: P
     );
   }
   const d = fileDetail(path);
+  const mentions = promptsMentioningFile(path, 25);
   if (!d.totals || d.totals.total === 0) {
     return (
       <div className="p-6 max-w-4xl">
@@ -65,6 +66,26 @@ export default async function FileDetailPage({ searchParams }: { searchParams: P
         </div>
         <Sparkline values={filled} height={60} />
       </section>
+
+      {mentions.length > 0 && (
+        <section className="rounded-lg border border-border bg-card/60 p-4">
+          <h2 className="text-sm font-medium mb-3">Prompts mentioning <code className="text-accent">{basename(path)}</code> ({mentions.length})</h2>
+          <ul className="space-y-1">
+            {mentions.map((m: any) => (
+              <li key={m.id}>
+                <Link href={`/sessions/${m.session_id}#p${m.id}`}
+                  className="block rounded p-2 hover:bg-muted/40 border border-transparent hover:border-border">
+                  <div className="text-[11px] text-mutedfg flex gap-2">
+                    <span className="tabular-nums">{fmtDate(m.ts)}</span>
+                    <span className="truncate">· {basename(m.cwd || "")}</span>
+                  </div>
+                  <div className="text-[12px] font-mono mt-0.5 line-clamp-2">{truncate((m.snippet || "").replace(/\s+/g, " "), 280)}</div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="rounded-lg border border-border bg-card/60 p-4">
         <h2 className="text-sm font-medium mb-3">Sessions that touched this file</h2>

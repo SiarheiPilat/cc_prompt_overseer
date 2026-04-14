@@ -855,6 +855,31 @@ export function fileUsage(opts: { project?: string; limit?: number } = {}) {
   return D.prepare(sql).all(...params, opts.limit ?? 100) as any[];
 }
 
+export function promptsMentioningFile(path: string, limit = 25) {
+  // Try FTS on the basename first (cheap), then full path as a fallback LIKE.
+  const D = db();
+  const base = path.replace(/\\/g, "/").split("/").pop() || path;
+  const safe = base.replace(/["*]/g, "");
+  let rows: any[] = [];
+  try {
+    rows = D.prepare(`
+      SELECT p.id, p.session_id, p.ts, substr(p.text, 1, 280) AS snippet, pr.cwd
+      FROM prompts_fts JOIN prompts p ON p.id = prompts_fts.rowid
+      LEFT JOIN projects pr ON pr.id = p.project_id
+      WHERE prompts_fts MATCH ?
+      ORDER BY p.ts DESC LIMIT ?
+    `).all(`"${safe}"`, limit) as any[];
+  } catch {}
+  if (!rows.length) {
+    rows = D.prepare(`
+      SELECT p.id, p.session_id, p.ts, substr(p.text, 1, 280) AS snippet, pr.cwd
+      FROM prompts p LEFT JOIN projects pr ON pr.id = p.project_id
+      WHERE p.text LIKE ? ORDER BY p.ts DESC LIMIT ?
+    `).all(`%${base}%`, limit) as any[];
+  }
+  return rows;
+}
+
 export function fileDetail(path: string) {
   const D = db();
   const totals = D.prepare(`
